@@ -204,6 +204,10 @@ export const errors = {
   "errors.videoCapabilities.duplicateResolution": "分辨率不能重复。",
   "errors.videoCapabilities.defaultOutput":
     "默认分辨率和时长必须属于已声明的输出规格。",
+  "errors.videoCapabilities.inferenceRange":
+    "采样参数超出范围（步数 1–50、flow shift 0–60、guidance 0–20、LoRA 权重 0–1）。",
+  "errors.videoCapabilities.loraPair": "LoRA 名称与路径须同时填写。",
+  "errors.videoCapabilities.loraSteps": "采样步数与蒸馏 LoRA 的档位不一致。",
   "errors.tools.saveBeforeSubmit": "请先保存工具编辑设置，再提交任务。",
   "errors.tools.taskCancelled": "任务已取消。",
   "errors.tools.taskIncomplete": "工具任务未完成。",

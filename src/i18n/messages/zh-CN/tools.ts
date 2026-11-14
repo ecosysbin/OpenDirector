@@ -416,4 +416,20 @@ export const tools = {
   "tools.videoCapabilities.defaults.duration": "默认时长（秒）",
   "tools.videoCapabilities.defaults.durationAria": "默认时长",
   "tools.videoCapabilities.defaults.alignment": "像素对齐步长",
+  "tools.videoCapabilities.inference.heading": "采样参数（蒸馏 LoRA）",
+  "tools.videoCapabilities.inference.help":
+    "填写后每次生成都会带这些采样参数；LoRA 名称里的档位（如 8step）决定步数，步骤留空时按该档位推断，flow shift 留空按 6。",
+  "tools.videoCapabilities.inference.steps": "采样步数",
+  "tools.videoCapabilities.inference.stepsPlaceholder": "留空按 LoRA 档位",
+  "tools.videoCapabilities.inference.flowShift": "flow shift",
+  "tools.videoCapabilities.inference.audioFlowShift": "音频 flow shift",
+  "tools.videoCapabilities.inference.guidanceScale": "guidance scale",
+  "tools.videoCapabilities.inference.loraName": "LoRA 名称",
+  "tools.videoCapabilities.inference.loraNamePlaceholder":
+    "例如 8step_v1.0_768p",
+  "tools.videoCapabilities.inference.loraPath": "LoRA 路径",
+  "tools.videoCapabilities.inference.loraPathPlaceholder":
+    "例如 /models/Turbo-LoRA/8step-v1.0",
+  "tools.videoCapabilities.inference.loraScale": "LoRA 权重",
+  "tools.videoCapabilities.inference.loraScalePlaceholder": "0–1，默认 1",
 } as const;

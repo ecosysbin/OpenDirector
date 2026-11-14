@@ -274,6 +274,12 @@ export const errors = {
   "errors.videoCapabilities.duplicateResolution": "Resolutions cannot repeat.",
   "errors.videoCapabilities.defaultOutput":
     "The default resolution and duration must belong to a declared output profile.",
+  "errors.videoCapabilities.inferenceRange":
+    "Sampling settings are out of range (steps 1–50, flow shift 0–60, guidance 0–20, LoRA scale 0–1).",
+  "errors.videoCapabilities.loraPair":
+    "The LoRA name and path must be filled in together.",
+  "errors.videoCapabilities.loraSteps":
+    "The sampling steps do not match the distilled LoRA tier.",
   "errors.tools.saveBeforeSubmit":
     "Save the tool settings before submitting the task.",
   "errors.tools.taskCancelled": "The task was cancelled.",

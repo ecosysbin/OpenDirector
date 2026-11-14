@@ -20,6 +20,18 @@ import type { MessageKey } from "../i18n/types.ts";
 export type ModelKind = "agent" | "image" | "video" | "audio" | "vision";
 export type BackendVideoMode = "first_frame" | "reference" | "continuation";
 export type VideoAdapter = "auto" | "fasth3" | "minimax_h3" | "standard";
+export interface VideoLoRA {
+  name: string;
+  path: string;
+  scale?: number;
+}
+export interface VideoInference {
+  steps?: number;
+  flowShift?: number;
+  audioFlowShift?: number;
+  guidanceScale?: number;
+  lora?: VideoLoRA;
+}
 export interface VideoCapabilities {
   outputs: {
     resolution: string;
@@ -30,6 +42,7 @@ export interface VideoCapabilities {
   defaultResolution: string;
   defaultDuration: number;
   dimensionStep: 1 | 2 | 8 | 16 | 32 | 64;
+  inference?: VideoInference;
 }
 
 export interface InputRules {

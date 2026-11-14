@@ -10,6 +10,7 @@ import {
 } from "../src/backend/rules.ts";
 import {
   createVideoCapabilities,
+  createVideoInference,
   parseVideoSeconds,
   videoOutputDrafts,
 } from "../src/backend/videoCapabilities.ts";
@@ -129,4 +130,53 @@ test("declared durations outside H3 range are available for other adapters", () 
     backendBlocker({ ...settings, durationSeconds: 30 }, [], [extended]),
     null,
   );
+});
+
+test("distilled sampling settings travel with the video capabilities", () => {
+  const draft = {
+    steps: "",
+    flowShift: "6",
+    audioFlowShift: "",
+    guidanceScale: "",
+    loraName: "8step_v1.0_768p",
+    loraPath: "/models/Turbo-LoRA/8step-v1.0",
+    loraScale: "1",
+  };
+  assert.deepEqual(createVideoInference(draft), {
+    flowShift: 6,
+    lora: {
+      name: "8step_v1.0_768p",
+      path: "/models/Turbo-LoRA/8step-v1.0",
+      scale: 1,
+    },
+  });
+  assert.equal(
+    createVideoInference({
+      ...draft,
+      flowShift: "",
+      loraName: "",
+      loraPath: "",
+      loraScale: "",
+    }),
+    undefined,
+  );
+  assert.throws(() => createVideoInference({ ...draft, steps: "20" }));
+  assert.throws(() => createVideoInference({ ...draft, loraPath: "" }));
+  const capabilities = createVideoCapabilities(
+    videoOutputDrafts(caps),
+    "720P",
+    7,
+    2,
+    "standard",
+    createVideoInference({ ...draft, steps: "8" }),
+  );
+  assert.deepEqual(capabilities.inference, {
+    steps: 8,
+    flowShift: 6,
+    lora: {
+      name: "8step_v1.0_768p",
+      path: "/models/Turbo-LoRA/8step-v1.0",
+      scale: 1,
+    },
+  });
 });

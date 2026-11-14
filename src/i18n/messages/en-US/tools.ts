@@ -448,4 +448,21 @@ export const tools = {
   "tools.videoCapabilities.defaults.duration": "Default duration (s)",
   "tools.videoCapabilities.defaults.durationAria": "Default duration",
   "tools.videoCapabilities.defaults.alignment": "Pixel alignment step",
+  "tools.videoCapabilities.inference.heading": "Sampling settings (distilled LoRA)",
+  "tools.videoCapabilities.inference.help":
+    "Every generation carries these settings once filled in. The step count in the LoRA name (e.g. 8step) decides the steps when left blank, and flow shift falls back to 6.",
+  "tools.videoCapabilities.inference.steps": "Sampling steps",
+  "tools.videoCapabilities.inference.stepsPlaceholder":
+    "Blank uses the LoRA tier",
+  "tools.videoCapabilities.inference.flowShift": "Flow shift",
+  "tools.videoCapabilities.inference.audioFlowShift": "Audio flow shift",
+  "tools.videoCapabilities.inference.guidanceScale": "Guidance scale",
+  "tools.videoCapabilities.inference.loraName": "LoRA name",
+  "tools.videoCapabilities.inference.loraNamePlaceholder":
+    "e.g. 8step_v1.0_768p",
+  "tools.videoCapabilities.inference.loraPath": "LoRA path",
+  "tools.videoCapabilities.inference.loraPathPlaceholder":
+    "e.g. /models/Turbo-LoRA/8step-v1.0",
+  "tools.videoCapabilities.inference.loraScale": "LoRA scale",
+  "tools.videoCapabilities.inference.loraScalePlaceholder": "0–1, default 1",
 } as const;
