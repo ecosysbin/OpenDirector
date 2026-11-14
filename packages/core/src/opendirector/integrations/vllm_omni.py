@@ -23,6 +23,31 @@ from opendirector.media.probe import require_ffprobe
 
 FPS = 24
 RATIOS = {'16:9', '9:16', '1:1', '4:3', '3:4'}
+RATIO_VALUES = {'21:9': 21 / 9, '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1.0, '3:4': 3 / 4, '9:16': 9 / 16}
+
+
+def ratio_for_size(size):
+    """The declared ratio matching a fixed frame, so size and aspect_ratio never disagree."""
+    try:
+        width, height = (int(value) for value in str(size).split('x'))
+    except (TypeError, ValueError):
+        return None
+    return min(RATIO_VALUES, key=lambda name: abs(RATIO_VALUES[name] - width / height))
+
+
+def inference_fields(config):
+    """Engine-owned sampling settings. A distilled LoRA is what changes the request."""
+    inference = (config.get('videoCapabilities') or {}).get('inference') or {}
+    lora = inference.get('lora')
+    if not lora:
+        return {}, None
+    # The step count, flow shift and adapter travel together: the service
+    # validates them against the weights it loaded and rejects a mismatch.
+    fields = {'num_inference_steps': str(int(inference.get('steps') or 8)),
+              'flow_shift': format(float(inference.get('flowShift') or 6), 'g'),
+              'lora': json.dumps({'name': lora['name'], 'path': lora['path'],
+                                  'scale': lora.get('scale', 1.0)}, ensure_ascii=False)}
+    return fields, float(inference.get('audioFlowShift') or 3)
 
 
 def h3_frames(seconds):
@@ -69,7 +94,7 @@ class VllmOmniGeneration:
         fields = {'model': config['modelId'], 'prompt': prepared['prompt'],
                   'fps': str(task['parameters'].get('fps', FPS)),
                   'num_frames': str(task['parameters'].get('num_frames', h3_frames(seconds)))}
-        if task['parameters'].get('resolution') and task['parameters'].get('size'):
+        if task['parameters'].get('size'):
             fields['size'] = task['parameters']['size']
         files, extra = [], {}
         if mode == 'continuation':
@@ -89,10 +114,16 @@ class VllmOmniGeneration:
                 prepared = {**prepared, 'images': []}
             else:
                 extra['task'] = 't2va'
-                # An explicit size already fixes the frame; sending a conflicting
-                # aspect_ratio would contradict it.
-                if 'size' not in fields:
-                    extra['aspect_ratio'] = ratio if ratio in RATIOS else '16:9'
+        # The service reads aspect_ratio as a top-level field and requires it
+        # explicitly for text-to-video; it is derived from size when a frame is fixed.
+        fields['aspect_ratio'] = ratio_for_size(fields.get('size')) or (ratio if ratio in RATIOS else '16:9')
+        inference, audio_flow_shift = inference_fields(config)
+        fields.update(inference)
+        generate_audio = task['parameters'].get('generateAudio')
+        if generate_audio is not None:
+            fields['generate_sound'] = 'true' if generate_audio else 'false'
+        if inference and generate_audio is not False:
+            extra['audio_flow_shift'] = audio_flow_shift
         files.extend(('input_references', _upload(image, f'image_{index}')) for index, image in enumerate(prepared['images'], 1))
         files.extend(('input_references', _upload(audio, f'audio_{index}')) for index, audio in enumerate(prepared['audios'], 1))
         fields['extra_params'] = json.dumps(extra)

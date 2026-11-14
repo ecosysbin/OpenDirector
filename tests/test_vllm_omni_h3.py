@@ -78,7 +78,7 @@ def prepared(images=(), audios=(), continue_from=None, size=None):
 
 
 @pytest.mark.parametrize('mode,refs,extra,files', [
-    ('first_frame', prepared(), {'task': 't2va', 'aspect_ratio': '9:16'}, []),
+    ('first_frame', prepared(), {'task': 't2va'}, []),
     ('first_frame', prepared([data_uri(png(), 'image/png')]), {'task': 'fl2va'}, [('input_reference', 'first_frame.png', 'image/png')]),
     ('reference', prepared([data_uri(png(), 'image/png')], [data_uri(b'ID3', 'audio/mpeg')]), {'task': 'ref2va'},
      [('input_references', 'image_1.png', 'image/png'), ('input_references', 'audio_1.mp3', 'audio/mpeg')]),
@@ -93,6 +93,35 @@ def test_request_form_per_mode(mode, refs, extra, files):
     assert [(name, upload[0], upload[2]) for name, upload in uploads] == files
     assert fields['num_frames'] == '124' and 'quality' not in fields
     assert fields.get('size') == ('1344x768' if mode == 'continuation' else None)
+    # Top-level, and derived from a fixed frame so the two never disagree.
+    assert fields['aspect_ratio'] == ('16:9' if mode == 'continuation' else '9:16')
+
+
+def test_distilled_lora_settings_reach_the_request(tmp_path):
+    store, _, _ = new_project(tmp_path, '蒸馏参数')
+    config = ModelConfigs(store.local.repository).save(
+        'video', H3['url'], 'minimax-h3', 'token', connection_type='self_hosted', protocol='vllm_omni', auth_mode='bearer',
+        video_capabilities={'outputs': [{'resolution': '768P', 'durations': list(range(4, 16)), 'width': 1344, 'height': 768}],
+                            'defaultResolution': '768P', 'defaultDuration': 5, 'dimensionStep': 32,
+                            'inference': {'flowShift': 6, 'audioFlowShift': 3,
+                                          'lora': {'name': '8step_v1.0_768p', 'path': '/models/Turbo-LoRA/8step-v1.0', 'scale': 1.0}}})
+    task = {'videoMode': 'first_frame', 'parameters': {'duration': 5, 'size': '1344x768', 'generateAudio': True}}
+    fields, _ = VllmOmniGeneration(None).form(config, task, prepared())
+    # Steps come from the LoRA's own step count; the adapter and flow shift travel with them.
+    assert (fields['num_inference_steps'], fields['flow_shift']) == ('8', '6')
+    assert json.loads(fields['lora']) == {'name': '8step_v1.0_768p', 'path': '/models/Turbo-LoRA/8step-v1.0', 'scale': 1.0}
+    assert fields['size'] == '1344x768' and fields['aspect_ratio'] == '16:9' and fields['generate_sound'] == 'true'
+    assert json.loads(fields['extra_params']) == {'task': 't2va', 'audio_flow_shift': 3.0}
+
+
+def test_step_count_must_match_the_configured_lora(tmp_path):
+    store, _, _ = new_project(tmp_path, '步数校验')
+    with pytest.raises(ProjectError, match='视频输出规格无效'):
+        ModelConfigs(store.local.repository).save(
+            'video', H3['url'], 'minimax-h3', 'token', connection_type='self_hosted', protocol='vllm_omni', auth_mode='bearer',
+            video_capabilities={'outputs': [{'resolution': '768P', 'durations': [5], 'width': 1344, 'height': 768}],
+                                'dimensionStep': 32,
+                                'inference': {'steps': 20, 'lora': {'name': '8step_v1.0_768p', 'path': '/models/x'}}})
 
 
 class FakeOmni:
@@ -155,7 +184,8 @@ def test_canvas_continues_a_previous_h3_clip_by_its_job_id(project, tmp_path):
         manager.provider = GenerationProviders(manager.store, httpx.MockTransport(server), poll_interval=0)
         first = await generate({'prompt': '灯塔在黄昏亮起', 'referenceIds': [], 'videoMode': 'first_frame'})
         assert first['status'] == 'succeeded' and first['externalTaskId'] == 'video_gen_1', (first['error'], first['errorDetails'])
-        assert json.loads(server.posts[0][0]['extra_params']) == {'task': 't2va', 'aspect_ratio': '16:9'}
+        assert json.loads(server.posts[0][0]['extra_params']) == {'task': 't2va'}
+        assert server.posts[0][0]['aspect_ratio'] == '16:9'
 
         second = await generate({'prompt': '光束扫过海面', 'referenceIds': [first['assetId']], 'videoMode': 'continuation'})
         assert second['status'] == 'succeeded' and second['videoMode'] == 'continuation', (second['error'], second['errorDetails'])

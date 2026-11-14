@@ -1479,6 +1479,7 @@ export interface VideoCapabilitiesInput {
   readonly defaultResolution?: string;
   readonly defaultDuration?: number;
   readonly dimensionStep?: 1 | 2 | 8 | 16 | 32 | 64;
+  readonly inference?: VideoInferenceInput | null;
 }
 
 export interface VideoExecutionInput extends ContractInput {
@@ -1498,6 +1499,20 @@ export interface VideoExecutionInput extends ContractInput {
 export interface VideoGenerationSpecInput extends GenerationSpecBaseInput {
   readonly kind: "video";
   readonly parameters?: VideoParametersInput;
+}
+
+export interface VideoInferenceInput {
+  readonly steps?: number | null;
+  readonly flowShift?: number | null;
+  readonly audioFlowShift?: number | null;
+  readonly guidanceScale?: number | null;
+  readonly lora?: VideoLoraInput | null;
+}
+
+export interface VideoLoraInput {
+  readonly name: string;
+  readonly path: string;
+  readonly scale?: number;
 }
 
 export interface VideoOutputInput {
@@ -3051,6 +3066,7 @@ export interface VideoCapabilities {
   readonly defaultResolution: string;
   readonly defaultDuration: number;
   readonly dimensionStep: 1 | 2 | 8 | 16 | 32 | 64;
+  readonly inference?: VideoInference | null;
 }
 
 export interface VideoExecution extends Contract {
@@ -3070,6 +3086,20 @@ export interface VideoExecution extends Contract {
 export interface VideoGenerationSpec extends GenerationSpecBase {
   readonly kind: "video";
   readonly parameters: VideoParameters;
+}
+
+export interface VideoInference {
+  readonly steps?: number | null;
+  readonly flowShift?: number | null;
+  readonly audioFlowShift?: number | null;
+  readonly guidanceScale?: number | null;
+  readonly lora?: VideoLora | null;
+}
+
+export interface VideoLora {
+  readonly name: string;
+  readonly path: string;
+  readonly scale?: number;
 }
 
 export interface VideoOutput {

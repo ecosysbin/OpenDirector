@@ -30,12 +30,49 @@ class VideoOutput(BaseModel):
         return self
 
 
+class VideoLora(BaseModel):
+    """A distilled LoRA the engine already serves, described exactly as the API receives it."""
+    model_config = ConfigDict(extra='forbid')
+    name: str = Field(min_length=1, max_length=200, description='LoRA identifier the service reports.')
+    path: str = Field(min_length=1, max_length=1024, description='LoRA directory or file as the service sees it.')
+    scale: Annotated[float, Field(ge=0.0, le=1.0)] = Field(default=1.0, description='Adapter weight multiplier.')
+
+
+class VideoInference(BaseModel):
+    """Sampling settings owned by the deployed engine, not by a single request."""
+    model_config = ConfigDict(extra='forbid')
+    steps: Annotated[StrictInt, Field(ge=1, le=50)] | None = Field(default=None, description='Denoising steps sent as num_inference_steps.')
+    flowShift: Annotated[float, Field(ge=0.0, le=60.0)] | None = Field(default=None, description='Flow shift the served weights were trained with.')
+    audioFlowShift: Annotated[float, Field(ge=0.0, le=60.0)] | None = Field(default=None, description='Flow shift for the sound branch.')
+    guidanceScale: Annotated[float, Field(ge=0.0, le=20.0)] | None = Field(default=None, description='Guidance scale sent as guidance_scale.')
+    lora: VideoLora | None = Field(default=None, description='Distilled acceleration weights, e.g. an 8-step Turbo LoRA.')
+
+    @model_validator(mode='after')
+    def lora_defines_its_grid(self):
+        # A step count and its flow shift are part of a distilled LoRA's file
+        # contract; the service refuses a request that disagrees with its weights.
+        if self.lora is None:
+            return self
+        match = re.search(r'(\d+)\s*[-_ ]?step', self.lora.name, re.IGNORECASE)
+        if match:
+            native = int(match.group(1))
+            if self.steps is None:
+                self.steps = native
+            elif self.steps not in {native, native + 1}:
+                raise ValueError('采样步数与蒸馏 LoRA 的档位不一致。')
+        if self.flowShift is None:
+            self.flowShift = 6.0
+        return self
+
+
 class VideoCapabilities(BaseModel):
     model_config = ConfigDict(extra='forbid')
     outputs: list[VideoOutput] = Field(min_length=1, max_length=20, description='Supported output resolution and duration combinations.')
     defaultResolution: str = Field(default='auto', description='Default output resolution or auto.')
     defaultDuration: Second = Field(default=5, description='Default output duration in seconds.')
     dimensionStep: Literal[1, 2, 8, 16, 32, 64] = Field(default=2, description='Required pixel alignment of output dimensions.')
+    inference: VideoInference | None = Field(default=None, exclude_if=lambda value: value is None,
+                                             description='Engine sampling settings applied to every request of this model.')
 
     @model_validator(mode='after')
     def defaults_exist(self):

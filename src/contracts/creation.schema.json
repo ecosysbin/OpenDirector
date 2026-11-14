@@ -13896,6 +13896,18 @@
             ],
             "title": "Dimensionstep",
             "type": "integer"
+          },
+          "inference": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoInference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Engine sampling settings applied to every request of this model."
           }
         },
         "required": [
@@ -14172,6 +14184,120 @@
           "kind"
         ],
         "title": "VideoGenerationSpec",
+        "type": "object"
+      },
+      "VideoInference": {
+        "additionalProperties": false,
+        "description": "Sampling settings owned by the deployed engine, not by a single request.",
+        "properties": {
+          "steps": {
+            "anyOf": [
+              {
+                "maximum": 50,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Denoising steps sent as num_inference_steps.",
+            "title": "Steps"
+          },
+          "flowShift": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flow shift the served weights were trained with.",
+            "title": "Flowshift"
+          },
+          "audioFlowShift": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flow shift for the sound branch.",
+            "title": "Audioflowshift"
+          },
+          "guidanceScale": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Guidance scale sent as guidance_scale.",
+            "title": "Guidancescale"
+          },
+          "lora": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoLora"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Distilled acceleration weights, e.g. an 8-step Turbo LoRA."
+          }
+        },
+        "title": "VideoInference",
+        "type": "object"
+      },
+      "VideoLora": {
+        "additionalProperties": false,
+        "description": "A distilled LoRA the engine already serves, described exactly as the API receives it.",
+        "properties": {
+          "name": {
+            "description": "LoRA identifier the service reports.",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "description": "LoRA directory or file as the service sees it.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "scale": {
+            "default": 1.0,
+            "description": "Adapter weight multiplier.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Scale",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ],
+        "title": "VideoLora",
         "type": "object"
       },
       "VideoOutput": {
@@ -29492,6 +29618,18 @@
             ],
             "title": "Dimensionstep",
             "type": "integer"
+          },
+          "inference": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoInference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Engine sampling settings applied to every request of this model."
           }
         },
         "required": [
@@ -29788,6 +29926,120 @@
           "parameters"
         ],
         "title": "VideoGenerationSpec",
+        "type": "object"
+      },
+      "VideoInference": {
+        "additionalProperties": false,
+        "description": "Sampling settings owned by the deployed engine, not by a single request.",
+        "properties": {
+          "steps": {
+            "anyOf": [
+              {
+                "maximum": 50,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Denoising steps sent as num_inference_steps.",
+            "title": "Steps"
+          },
+          "flowShift": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flow shift the served weights were trained with.",
+            "title": "Flowshift"
+          },
+          "audioFlowShift": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flow shift for the sound branch.",
+            "title": "Audioflowshift"
+          },
+          "guidanceScale": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Guidance scale sent as guidance_scale.",
+            "title": "Guidancescale"
+          },
+          "lora": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoLora"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Distilled acceleration weights, e.g. an 8-step Turbo LoRA."
+          }
+        },
+        "title": "VideoInference",
+        "type": "object"
+      },
+      "VideoLora": {
+        "additionalProperties": false,
+        "description": "A distilled LoRA the engine already serves, described exactly as the API receives it.",
+        "properties": {
+          "name": {
+            "description": "LoRA identifier the service reports.",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "description": "LoRA directory or file as the service sees it.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "scale": {
+            "default": 1.0,
+            "description": "Adapter weight multiplier.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Scale",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ],
+        "title": "VideoLora",
         "type": "object"
       },
       "VideoOutput": {
