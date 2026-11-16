@@ -132,7 +132,7 @@ export function createVideoCapabilities(
       // derives itself; saving anything else would only fail at generation.
       const derived =
         (adapter === "fasth3" || adapter === "minimax_h3") &&
-        (resolution === "480P" || resolution === "768P");
+        ["480P", "768P", "1080P"].includes(resolution);
       if (!derived)
         throw new Error(
           tNow("errors.videoCapabilities.pixelRequired"),

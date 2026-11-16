@@ -394,7 +394,7 @@ export const tools = {
 
   "tools.videoCapabilities.custom": "自定义输出规格（关闭时跟随适配预设）",
   "tools.videoCapabilities.helpH3":
-    "H3 适配固定 4–15 秒、32 像素对齐；仅 480P、768P 可留空宽高，其余档位需填写。像素尺寸按横屏填写，竖屏交换宽高。",
+    "H3 适配固定 4–15 秒、32 像素对齐；仅 480P、768P、1080P 可留空宽高，其余档位需填写。像素尺寸按横屏填写，竖屏交换宽高。",
   "tools.videoCapabilities.helpDefault":
     "填写服务实际支持的规格；时长可写 4-10,15。像素尺寸按横屏填写，竖屏交换宽高，且须按像素对齐步长填写。",
   "tools.videoCapabilities.output.heading": "输出规格 {index}",

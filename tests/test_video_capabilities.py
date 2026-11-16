@@ -181,5 +181,5 @@ def test_preset_preview_supports_aliased_fasth3_without_network_or_credentials(a
     response = client.post('/api/model-configs/capabilities', json={**model_payload(apiKey='', videoAdapter='fasth3'), 'source': 'preset'})
     assert response.status_code == 200
     caps = response.json()['videoCapabilities']
-    assert [item['resolution'] for item in caps['outputs']] == ['480P', '768P']
+    assert [item['resolution'] for item in caps['outputs']] == ['480P', '768P', '1080P']
     assert caps['dimensionStep'] == 32

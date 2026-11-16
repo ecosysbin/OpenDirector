@@ -198,7 +198,7 @@ export const errors = {
     "分辨率名称无效，例如 480P、720P、4K。",
   "errors.videoCapabilities.pixelPair": "像素宽高须同时填写或留空。",
   "errors.videoCapabilities.pixelRequired":
-    "该适配方式需要填写像素宽高（仅 H3 的 480P、768P 可按档位推算）。",
+    "该适配方式需要填写像素宽高（仅 H3 的 480P、768P、1080P 可按档位推算）。",
   "errors.videoCapabilities.pixelBounds":
     "横屏宽高须为 64–8192 的整数，宽不小于高，并符合像素对齐步长。",
   "errors.videoCapabilities.duplicateResolution": "分辨率不能重复。",

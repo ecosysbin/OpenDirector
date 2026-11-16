@@ -426,7 +426,7 @@ export const tools = {
   "tools.videoCapabilities.custom":
     "Custom output specs (off follows the adapter preset)",
   "tools.videoCapabilities.helpH3":
-    "The H3 adapter is fixed to 4–15 seconds and 32-pixel alignment; only 480P and 768P may leave width and height empty, other tiers require them. Pixel sizes are entered for landscape; swap width and height for portrait.",
+    "The H3 adapter is fixed to 4–15 seconds and 32-pixel alignment; only 480P, 768P and 1080P may leave width and height empty, other tiers require them. Pixel sizes are entered for landscape; swap width and height for portrait.",
   "tools.videoCapabilities.helpDefault":
     "Enter the specs the service actually supports; durations can be written as 4-10,15. Pixel sizes are entered for landscape, swap width and height for portrait, and must follow the pixel alignment step.",
   "tools.videoCapabilities.output.heading": "Output spec {index}",

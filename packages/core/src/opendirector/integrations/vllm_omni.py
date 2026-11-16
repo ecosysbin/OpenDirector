@@ -36,17 +36,28 @@ def ratio_for_size(size):
 
 
 def inference_fields(config):
-    """Engine-owned sampling settings. A distilled LoRA is what changes the request."""
+    """Engine-owned sampling settings: steps and flow shift, plus the adapter when one is configured."""
     inference = (config.get('videoCapabilities') or {}).get('inference') or {}
     lora = inference.get('lora')
-    if not lora:
+    steps = inference.get('steps')
+    if lora and not steps:
+        # A distilled adapter carries its tier in the file name; the engine reads
+        # it from the weights, so an explicit count is only sent when asked for.
+        steps = 8
+    if not lora and not steps and inference.get('flowShift') is None:
         return {}, None
     # The step count, flow shift and adapter travel together: the service
     # validates them against the weights it loaded and rejects a mismatch.
-    fields = {'num_inference_steps': str(int(inference.get('steps') or 8)),
-              'flow_shift': format(float(inference.get('flowShift') or 6), 'g'),
-              'lora': json.dumps({'name': lora['name'], 'path': lora['path'],
-                                  'scale': lora.get('scale', 1.0)}, ensure_ascii=False)}
+    fields = {}
+    if steps:
+        fields['num_inference_steps'] = str(int(steps))
+    if inference.get('flowShift') is not None:
+        fields['flow_shift'] = format(float(inference['flowShift']), 'g')
+    elif lora:
+        fields['flow_shift'] = '6'
+    if lora:
+        fields['lora'] = json.dumps({'name': lora['name'], 'path': lora['path'],
+                                     'scale': lora.get('scale', 1.0)}, ensure_ascii=False)
     return fields, float(inference.get('audioFlowShift') or 3)
 
 

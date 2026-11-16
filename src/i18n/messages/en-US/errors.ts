@@ -268,7 +268,7 @@ export const errors = {
   "errors.videoCapabilities.pixelPair":
     "Enter both pixel width and height, or leave both empty.",
   "errors.videoCapabilities.pixelRequired":
-    "This adapter needs explicit pixel width and height (only H3 480P and 768P can be derived from the tier).",
+    "This adapter needs explicit pixel width and height (only H3 480P, 768P and 1080P can be derived from the tier).",
   "errors.videoCapabilities.pixelBounds":
     "Landscape width and height must be integers from 64 to 8192, with width at least height, and must match the pixel alignment step.",
   "errors.videoCapabilities.duplicateResolution": "Resolutions cannot repeat.",

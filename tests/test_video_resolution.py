@@ -123,7 +123,7 @@ def test_explicit_ratio_wins_over_references_and_automatic_fit_prefers_video():
     assert records['photo']['width'] == 512  # Source/reference dimensions remain untouched.
 
 
-@pytest.mark.parametrize('resolution', ['720P', '1080P', '4K'])
+@pytest.mark.parametrize('resolution', ['720P', '4K'])
 def test_unsupported_h3_resolutions_are_rejected_before_task_acceptance(tmp_path, resolution):
     with pytest.raises(ProjectError, match='输出分辨率'):
         prepare(tmp_path, resolution=resolution)

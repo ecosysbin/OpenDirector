@@ -410,7 +410,7 @@ class VllmOmniVideo(ModelAdapter):
     capabilities = frozenset({'video.generate', 'video.first_frame', 'video.edit'})
     FPS = 24
     RATIOS = {'21:9': 21 / 9, '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1.0, '3:4': 3 / 4, '9:16': 9 / 16}
-    MAX_PIXELS = 768 * 1344
+    MAX_PIXELS = 1920 * 1088
     MAX_SECONDS = 15
 
     @classmethod
