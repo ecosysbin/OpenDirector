@@ -1507,6 +1507,7 @@ export interface VideoInferenceInput {
   readonly audioFlowShift?: number | null;
   readonly guidanceScale?: number | null;
   readonly lora?: VideoLoraInput | null;
+  readonly upscale?: VideoUpscaleInput | null;
 }
 
 export interface VideoLoraInput {
@@ -1528,6 +1529,14 @@ export interface VideoParametersInput extends ContractInput {
   readonly durationSeconds?: number | null;
   readonly aspectRatio?: string | null;
   readonly resolution?: string;
+  readonly upscale?: boolean;
+}
+
+export interface VideoUpscaleInput {
+  readonly modelPath?: string;
+  readonly scale?: number;
+  readonly nativeScale?: 2 | 4;
+  readonly tile?: number;
 }
 
 export interface ViewStateInput extends ContractInput {
@@ -3094,6 +3103,7 @@ export interface VideoInference {
   readonly audioFlowShift?: number | null;
   readonly guidanceScale?: number | null;
   readonly lora?: VideoLora | null;
+  readonly upscale?: VideoUpscale | null;
 }
 
 export interface VideoLora {
@@ -3115,6 +3125,14 @@ export interface VideoParameters extends Contract {
   readonly durationSeconds: number | null;
   readonly aspectRatio: string | null;
   readonly resolution: string;
+  readonly upscale: boolean;
+}
+
+export interface VideoUpscale {
+  readonly modelPath?: string;
+  readonly scale?: number;
+  readonly nativeScale?: 2 | 4;
+  readonly tile?: number;
 }
 
 export interface ViewState extends Contract {

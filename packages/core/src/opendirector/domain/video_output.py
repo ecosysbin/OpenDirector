@@ -28,6 +28,10 @@ def h3_output_size(resolution, ratio):
 
 def apply_video_resolution(parameters, node, records, config, output):
     rules = input_rules(config)
+    # Super resolution is per-request, so it survives the automatic-sizing path
+    # that returns before a frame is resolved.
+    if output.get('upscale'):
+        parameters['upscale'] = True
     capabilities = rules.get('videoCapabilities')
     chosen = output.get('resolution')
     resolution = chosen if chosen is not None else (None if node.get('videoMode') == 'continuation'

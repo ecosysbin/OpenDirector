@@ -38,6 +38,20 @@ class VideoLora(BaseModel):
     scale: Annotated[float, Field(ge=0.0, le=1.0)] = Field(default=1.0, description='Adapter weight multiplier.')
 
 
+class VideoUpscale(BaseModel):
+    """Super resolution weights and knobs the service applies after sampling.
+
+    Whether a clip is upscaled is a per-request choice (the video node's upscale
+    switch); this only describes the weights and how to run them, so a draft can
+    stay at the generated size while a delivery run doubles it.
+    """
+    model_config = ConfigDict(extra='forbid')
+    modelPath: str = Field(default='', max_length=1024, description='Weights as the service sees it; empty uses the service default.')
+    scale: Annotated[float, Field(ge=1.0, le=4.0)] = Field(default=2.0, description='Delivery factor applied to the generated frame.')
+    nativeScale: Literal[2, 4] = Field(default=4, description='Native factor of the weights (x4plus=4, x2plus=2).')
+    tile: Annotated[StrictInt, Field(ge=64, le=1024)] = Field(default=256, description='Tile size; lower it when VRAM is tight.')
+
+
 class VideoInference(BaseModel):
     """Sampling settings owned by the deployed engine, not by a single request."""
     model_config = ConfigDict(extra='forbid')
@@ -46,6 +60,7 @@ class VideoInference(BaseModel):
     audioFlowShift: Annotated[float, Field(ge=0.0, le=60.0)] | None = Field(default=None, description='Flow shift for the sound branch.')
     guidanceScale: Annotated[float, Field(ge=0.0, le=20.0)] | None = Field(default=None, description='Guidance scale sent as guidance_scale.')
     lora: VideoLora | None = Field(default=None, description='Distilled acceleration weights, e.g. an 8-step Turbo LoRA.')
+    upscale: VideoUpscale | None = Field(default=None, description='Super resolution weights used when a task asks for upscaling.')
 
     @model_validator(mode='after')
     def lora_defines_its_grid(self):

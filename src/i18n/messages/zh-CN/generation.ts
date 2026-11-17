@@ -46,6 +46,7 @@ export const generation = {
   "generation.field.resolution": "分辨率",
   "generation.field.count": "数量",
   "generation.field.audio": "生成音频",
+  "generation.field.upscale": "超分（交付为档位的倍数）",
   "generation.field.audioPending": "请求包含音频（服务能力待确认）",
   "generation.field.waitCapabilities": "等待服务能力，尚未核实",
   "generation.field.followReference": "跟随参照时长",

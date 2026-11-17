@@ -55,6 +55,7 @@ const SETTINGS_KEYS = [
   "scoreMode",
   "durationFromReference",
   "imagePreset",
+  "upscale",
   "modelConfigId",
 ] as const;
 

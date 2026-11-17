@@ -24,6 +24,8 @@ from opendirector.media.probe import require_ffprobe
 FPS = 24
 RATIOS = {'16:9', '9:16', '1:1', '4:3', '3:4'}
 RATIO_VALUES = {'21:9': 21 / 9, '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1.0, '3:4': 3 / 4, '9:16': 9 / 16}
+# The upscale build of the service ships these weights next to the H3 weights.
+UPSCALE_MODEL_PATH = '/models/Upscaler/realesrgan-x4plus/RealESRGAN_x4plus.pth'
 
 
 def ratio_for_size(size):
@@ -59,6 +61,24 @@ def inference_fields(config):
         fields['lora'] = json.dumps({'name': lora['name'], 'path': lora['path'],
                                      'scale': lora.get('scale', 1.0)}, ensure_ascii=False)
     return fields, float(inference.get('audioFlowShift') or 3)
+
+
+def upscale_fields(config, task):
+    """Super resolution is a per-request choice; the weights come from the model config.
+
+    A clip asked for upscaling comes back scaled by `scale`, so the declared output
+    tier still describes the generated frame, not the delivered one.
+    """
+    if not (task.get('parameters') or {}).get('upscale'):
+        return {}
+    settings = (((config.get('videoCapabilities') or {}).get('inference') or {}).get('upscale')) or {}
+    return {
+        'enable_upscale': 'true',
+        'upscale_model_path': settings.get('modelPath') or UPSCALE_MODEL_PATH,
+        'upscale_scale': format(float(settings.get('scale') or 2.0), 'g'),
+        'upscale_native_scale': str(int(settings.get('nativeScale') or 4)),
+        'upscale_tile': str(int(settings.get('tile') or 256)),
+    }
 
 
 def h3_frames(seconds):
@@ -130,6 +150,7 @@ class VllmOmniGeneration:
         fields['aspect_ratio'] = ratio_for_size(fields.get('size')) or (ratio if ratio in RATIOS else '16:9')
         inference, audio_flow_shift = inference_fields(config)
         fields.update(inference)
+        fields.update(upscale_fields(config, task))
         generate_audio = task['parameters'].get('generateAudio')
         if generate_audio is not None:
             fields['generate_sound'] = 'true' if generate_audio else 'false'

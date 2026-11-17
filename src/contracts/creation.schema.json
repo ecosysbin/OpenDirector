@@ -14261,6 +14261,18 @@
             ],
             "default": null,
             "description": "Distilled acceleration weights, e.g. an 8-step Turbo LoRA."
+          },
+          "upscale": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoUpscale"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Super resolution weights used when a task asks for upscaling."
           }
         },
         "title": "VideoInference",
@@ -14414,9 +14426,56 @@
             "pattern": "^(?:auto|[A-Z0-9][A-Z0-9_.-]{0,23})$",
             "title": "Resolution",
             "type": "string"
+          },
+          "upscale": {
+            "default": false,
+            "description": "Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.",
+            "title": "Upscale",
+            "type": "boolean"
           }
         },
         "title": "VideoParameters",
+        "type": "object"
+      },
+      "VideoUpscale": {
+        "additionalProperties": false,
+        "description": "Super resolution weights and knobs the service applies after sampling.\n\nWhether a clip is upscaled is a per-request choice (the video node's upscale\nswitch); this only describes the weights and how to run them, so a draft can\nstay at the generated size while a delivery run doubles it.",
+        "properties": {
+          "modelPath": {
+            "default": "",
+            "description": "Weights as the service sees it; empty uses the service default.",
+            "maxLength": 1024,
+            "title": "Modelpath",
+            "type": "string"
+          },
+          "scale": {
+            "default": 2.0,
+            "description": "Delivery factor applied to the generated frame.",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Scale",
+            "type": "number"
+          },
+          "nativeScale": {
+            "default": 4,
+            "description": "Native factor of the weights (x4plus=4, x2plus=2).",
+            "enum": [
+              2,
+              4
+            ],
+            "title": "Nativescale",
+            "type": "integer"
+          },
+          "tile": {
+            "default": 256,
+            "description": "Tile size; lower it when VRAM is tight.",
+            "maximum": 1024,
+            "minimum": 64,
+            "title": "Tile",
+            "type": "integer"
+          }
+        },
+        "title": "VideoUpscale",
         "type": "object"
       },
       "ViewState": {
@@ -30003,6 +30062,18 @@
             ],
             "default": null,
             "description": "Distilled acceleration weights, e.g. an 8-step Turbo LoRA."
+          },
+          "upscale": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoUpscale"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Super resolution weights used when a task asks for upscaling."
           }
         },
         "title": "VideoInference",
@@ -30156,6 +30227,12 @@
             "pattern": "^(?:auto|[A-Z0-9][A-Z0-9_.-]{0,23})$",
             "title": "Resolution",
             "type": "string"
+          },
+          "upscale": {
+            "default": false,
+            "description": "Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.",
+            "title": "Upscale",
+            "type": "boolean"
           }
         },
         "required": [
@@ -30163,9 +30240,51 @@
           "videoMode",
           "durationSeconds",
           "aspectRatio",
-          "resolution"
+          "resolution",
+          "upscale"
         ],
         "title": "VideoParameters",
+        "type": "object"
+      },
+      "VideoUpscale": {
+        "additionalProperties": false,
+        "description": "Super resolution weights and knobs the service applies after sampling.\n\nWhether a clip is upscaled is a per-request choice (the video node's upscale\nswitch); this only describes the weights and how to run them, so a draft can\nstay at the generated size while a delivery run doubles it.",
+        "properties": {
+          "modelPath": {
+            "default": "",
+            "description": "Weights as the service sees it; empty uses the service default.",
+            "maxLength": 1024,
+            "title": "Modelpath",
+            "type": "string"
+          },
+          "scale": {
+            "default": 2.0,
+            "description": "Delivery factor applied to the generated frame.",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Scale",
+            "type": "number"
+          },
+          "nativeScale": {
+            "default": 4,
+            "description": "Native factor of the weights (x4plus=4, x2plus=2).",
+            "enum": [
+              2,
+              4
+            ],
+            "title": "Nativescale",
+            "type": "integer"
+          },
+          "tile": {
+            "default": 256,
+            "description": "Tile size; lower it when VRAM is tight.",
+            "maximum": 1024,
+            "minimum": 64,
+            "title": "Tile",
+            "type": "integer"
+          }
+        },
+        "title": "VideoUpscale",
         "type": "object"
       },
       "ViewState": {

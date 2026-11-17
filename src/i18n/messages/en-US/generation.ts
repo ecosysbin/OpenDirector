@@ -49,6 +49,7 @@ export const generation = {
   "generation.field.resolution": "Resolution",
   "generation.field.count": "Count",
   "generation.field.audio": "Generate audio",
+  "generation.field.upscale": "Upscale (delivered at a multiple of the tier)",
   "generation.field.audioPending": "Request audio (service support unconfirmed)",
   "generation.field.waitCapabilities": "Waiting for service capabilities; not verified",
   "generation.field.followReference": "Follow reference duration",

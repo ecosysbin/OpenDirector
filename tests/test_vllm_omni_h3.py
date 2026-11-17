@@ -114,6 +114,41 @@ def test_distilled_lora_settings_reach_the_request(tmp_path):
     assert json.loads(fields['extra_params']) == {'task': 't2va', 'audio_flow_shift': 3.0}
 
 
+def test_upscale_is_a_per_request_choice(tmp_path):
+    store, _, _ = new_project(tmp_path, '超分参数')
+    config = ModelConfigs(store.local.repository).save(
+        'video', H3['url'], 'minimax-h3', 'token', connection_type='self_hosted', protocol='vllm_omni', auth_mode='bearer',
+        video_capabilities={'outputs': [{'resolution': '768P', 'durations': list(range(4, 16)), 'width': 1344, 'height': 768}],
+                            'defaultResolution': '768P', 'defaultDuration': 5, 'dimensionStep': 32,
+                            'inference': {'flowShift': 6, 'audioFlowShift': 3,
+                                          'lora': {'name': '8step_v1.0_768p', 'path': '/models/Turbo-LoRA/8step-v1.0'}}})
+    task = {'videoMode': 'first_frame', 'parameters': {'duration': 5, 'size': '1344x768'}}
+    fields, _ = VllmOmniGeneration(None).form(config, task, prepared())
+    # A draft keeps the generated frame; nothing changes unless the node asks.
+    assert 'enable_upscale' not in fields
+    task = {'videoMode': 'first_frame', 'parameters': {'duration': 5, 'size': '1344x768', 'upscale': True}}
+    fields, _ = VllmOmniGeneration(None).form(config, task, prepared())
+    assert fields['enable_upscale'] == 'true'
+    assert fields['upscale_model_path'] == '/models/Upscaler/realesrgan-x4plus/RealESRGAN_x4plus.pth'
+    assert (fields['upscale_scale'], fields['upscale_native_scale'], fields['upscale_tile']) == ('2', '4', '256')
+    # Sampling settings travel with it: the service applies both in one request.
+    assert (fields['num_inference_steps'], fields['flow_shift']) == ('8', '6')
+
+
+def test_upscale_weights_follow_the_model_config(tmp_path):
+    store, _, _ = new_project(tmp_path, '超分权重')
+    config = ModelConfigs(store.local.repository).save(
+        'video', H3['url'], 'minimax-h3', 'token', connection_type='self_hosted', protocol='vllm_omni', auth_mode='bearer',
+        video_capabilities={'outputs': [{'resolution': '768P', 'durations': [5], 'width': 1344, 'height': 768}],
+                            'dimensionStep': 32,
+                            'inference': {'upscale': {'modelPath': '/models/Up/RealESRGAN_x2plus.pth', 'scale': 2,
+                                                      'nativeScale': 2, 'tile': 128}}})
+    task = {'videoMode': 'first_frame', 'parameters': {'duration': 5, 'size': '1344x768', 'upscale': True}}
+    fields, _ = VllmOmniGeneration(None).form(config, task, prepared())
+    assert fields['upscale_model_path'] == '/models/Up/RealESRGAN_x2plus.pth'
+    assert (fields['upscale_scale'], fields['upscale_native_scale'], fields['upscale_tile']) == ('2', '2', '128')
+
+
 def test_step_count_must_match_the_configured_lora(tmp_path):
     store, _, _ = new_project(tmp_path, '步数校验')
     with pytest.raises(ProjectError, match='视频输出规格无效'):

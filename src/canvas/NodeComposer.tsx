@@ -947,6 +947,22 @@ export function NodeComposer({
                 />
               </label>
             )}
+          {mode === "video" && config?.protocol === "vllm_omni" && (
+            <label className="cw-audio-toggle">
+              <span>
+                <CanvasIcon name="sparkle" size={16} />
+                {t("generation.field.upscale")}
+              </span>
+              <input
+                type="checkbox"
+                checked={settings.upscale === true}
+                disabled={running}
+                onChange={(event) =>
+                  updateSettings({ upscale: event.target.checked })
+                }
+              />
+            </label>
+          )}
         </ComposerPopover>
       )}
 
