@@ -130,7 +130,7 @@ def test_upscale_is_a_per_request_choice(tmp_path):
     fields, _ = VllmOmniGeneration(None).form(config, task, prepared())
     assert fields['enable_upscale'] == 'true'
     assert fields['upscale_model_path'] == '/models/Upscaler/realesrgan-x4plus/RealESRGAN_x4plus.pth'
-    assert (fields['upscale_scale'], fields['upscale_native_scale'], fields['upscale_tile']) == ('2', '4', '256')
+    assert (fields['upscale_scale'], fields['upscale_native_scale'], fields['upscale_tile']) == ('2', '4', '512')
     # Sampling settings travel with it: the service applies both in one request.
     assert (fields['num_inference_steps'], fields['flow_shift']) == ('8', '6')
 

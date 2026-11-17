@@ -77,7 +77,7 @@ def upscale_fields(config, task):
         'upscale_model_path': settings.get('modelPath') or UPSCALE_MODEL_PATH,
         'upscale_scale': format(float(settings.get('scale') or 2.0), 'g'),
         'upscale_native_scale': str(int(settings.get('nativeScale') or 4)),
-        'upscale_tile': str(int(settings.get('tile') or 256)),
+        'upscale_tile': str(int(settings.get('tile') or 512)),
     }
 
 
