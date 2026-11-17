@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import tempfile
 
-from opendirector.domain.assets import MAX_ASSET_BYTES
+from opendirector.domain.assets import asset_limit, size_label
 from opendirector.domain.projects import ProjectError
 from opendirector.domain.references import project_content
 
@@ -108,8 +108,9 @@ def _trim_plain_fasth3(task, suffix, data):
             subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=60)
         except (subprocess.SubprocessError, OSError, ValueError):
             raise ProjectError('裁剪 FastH3 视频到所选时长失败；请检查 FFmpeg，稍后继续下载原任务，无需重新生成。', 409) from None
-        if output.stat().st_size > MAX_ASSET_BYTES:
-            raise ProjectError('处理后的视频超过 50 MB，无法保存到项目。', 413)
+        limit = asset_limit('mp4')
+        if output.stat().st_size > limit:
+            raise ProjectError(f'处理后的视频超过 {size_label(limit)}，无法保存到项目。', 413)
         return 'mp4', output.read_bytes()
 
 
@@ -159,6 +160,7 @@ def finalize_video_edit(store, task, suffix, data):
             subprocess.run(command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=60)
         except (subprocess.SubprocessError, OSError):
             raise ProjectError('保留原片音轨或时长失败；请检查 FFmpeg，稍后继续下载原任务，无需重新生成。', 409) from None
-        if output.stat().st_size > MAX_ASSET_BYTES:
-            raise ProjectError('处理后的视频超过 50 MB，无法保存到项目。', 413)
+        limit = asset_limit('mp4')
+        if output.stat().st_size > limit:
+            raise ProjectError(f'处理后的视频超过 {size_label(limit)}，无法保存到项目。', 413)
         return 'mp4', output.read_bytes()

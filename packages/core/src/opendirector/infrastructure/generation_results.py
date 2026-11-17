@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 from urllib.parse import urlsplit
 
-from opendirector.domain.assets import MAX_ASSET_BYTES
+from opendirector.domain.assets import asset_limit, size_label
 from opendirector.domain.projects import ProjectError, identifier
 from opendirector.infrastructure.local_projects import child, read_json, write_json
 
@@ -49,13 +49,15 @@ class GenerationResults:
         path = child(self.directory, 'output')
         if not metadata or not path.exists():
             return None
-        if path.stat().st_size > MAX_ASSET_BYTES:
-            raise ProjectError('生成恢复缓存超过大小限制。', 409)
+        limit = asset_limit(metadata['suffix'])
+        if path.stat().st_size > limit:
+            raise ProjectError(f'生成恢复缓存超过 {size_label(limit)} 限制。', 409)
         return metadata['suffix'], path.read_bytes()
 
     def save(self, suffix, data):
-        if len(data) > MAX_ASSET_BYTES:
-            raise ProjectError('生成结果超过 50 MB，无法保存到项目。', 413)
+        limit = asset_limit(suffix)
+        if len(data) > limit:
+            raise ProjectError(f'生成结果超过 {size_label(limit)}，无法保存到项目。', 413)
         self._prepare()
         # Metadata precedes the atomic complete-file replacement. A crash can
         # leave a locator or no output, but never a partial file named output.
