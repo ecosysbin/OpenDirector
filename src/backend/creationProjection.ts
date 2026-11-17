@@ -745,6 +745,7 @@ export class CreationProjection {
                       spec.parameters.resolution === "auto"
                         ? "auto"
                         : spec.parameters.resolution,
+                    upscale: spec.parameters.upscale,
                     frameSlotsInitialized: true,
                   }
                 : {}),
