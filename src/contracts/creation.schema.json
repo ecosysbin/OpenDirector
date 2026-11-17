@@ -30240,8 +30240,7 @@
           "videoMode",
           "durationSeconds",
           "aspectRatio",
-          "resolution",
-          "upscale"
+          "resolution"
         ],
         "title": "VideoParameters",
         "type": "object"

@@ -39,7 +39,11 @@ class VideoParameters(Contract):
     durationSeconds: Annotated[float, Field(strict=True, ge=1, le=60)] | None = Field(default=None, description='Duration in seconds.')
     aspectRatio: str | None = Field(default=None, pattern=r'^[1-9]\d?:[1-9]\d?$', description='Output width-to-height ratio.')
     resolution: str = Field(default='auto', pattern=r'^(?:auto|[A-Z0-9][A-Z0-9_.-]{0,23})$', description='Requested output resolution.')
-    upscale: bool = Field(default=False, description='Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.')
+    # Off is the absence of the field: stored snapshots predate this option, and
+    # digest() serializes defaults, so writing `false` would change every
+    # historical job fingerprint and make existing projects unreadable.
+    upscale: bool = Field(default=False, exclude_if=lambda value: value is False,
+                          description='Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.')
 
 
 # Music models count audio frames at 25 per second, between 200 and 9000 frames.

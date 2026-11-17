@@ -60,7 +60,10 @@ class VideoInference(BaseModel):
     audioFlowShift: Annotated[float, Field(ge=0.0, le=60.0)] | None = Field(default=None, description='Flow shift for the sound branch.')
     guidanceScale: Annotated[float, Field(ge=0.0, le=20.0)] | None = Field(default=None, description='Guidance scale sent as guidance_scale.')
     lora: VideoLora | None = Field(default=None, description='Distilled acceleration weights, e.g. an 8-step Turbo LoRA.')
-    upscale: VideoUpscale | None = Field(default=None, description='Super resolution weights used when a task asks for upscaling.')
+    # Omitted while unset so snapshots frozen before this option serialize as
+    # before; a written null would change their job input fingerprints.
+    upscale: VideoUpscale | None = Field(default=None, exclude_if=lambda value: value is None,
+                                         description='Super resolution weights used when a task asks for upscaling.')
 
     @model_validator(mode='after')
     def lora_defines_its_grid(self):

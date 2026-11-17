@@ -3125,7 +3125,7 @@ export interface VideoParameters extends Contract {
   readonly durationSeconds: number | null;
   readonly aspectRatio: string | null;
   readonly resolution: string;
-  readonly upscale: boolean;
+  readonly upscale?: boolean;
 }
 
 export interface VideoUpscale {
