@@ -44,6 +44,11 @@ class VideoParameters(Contract):
     # historical job fingerprint and make existing projects unreadable.
     upscale: bool = Field(default=False, exclude_if=lambda value: value is False,
                           description='Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.')
+    # Declares which node this clip continues. Only an id is stored, so a whole
+    # chain can be laid out before any of it exists; the job id is resolved at
+    # run time from the source node's newest finished clip.
+    continuationOf: str | None = Field(default=None, exclude_if=lambda value: value is None,
+                                       description='Canvas node whose finished clip this clip continues.')
 
 
 # Music models count audio frames at 25 per second, between 200 and 9000 frames.

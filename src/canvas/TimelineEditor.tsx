@@ -305,6 +305,21 @@ export function TimelineEditor({
       timelineLibraryResources(timeline, resources, librarySource, libraryKind),
     [resources, timeline, libraryKind, librarySource],
   );
+  /** The largest pixel size among visual clips, offered as "source size" in the ratio menu. */
+  const sourceCanvas = useMemo(() => {
+    let largest: { width: number; height: number } | null = null;
+    for (const track of timeline.tracks) {
+      if (track.kind !== "visual") continue;
+      for (const clip of track.clips) {
+        const { width, height } = clip.resource;
+        if (!width || !height) continue;
+        if (!largest || width * height > largest.width * largest.height) {
+          largest = { width, height };
+        }
+      }
+    }
+    return largest;
+  }, [timeline.tracks]);
   const segments = useMemo(
     () => timelineSegments(dragPreview ?? timeline),
     [timeline, dragPreview],
@@ -1893,6 +1908,25 @@ export function TimelineEditor({
                       }));
                     }}
                   >
+                    {sourceCanvas &&
+                      ![
+                        "1280:720",
+                        "1920:1080",
+                        "720:1280",
+                        "1080:1920",
+                        "1080:1080",
+                      ].includes(
+                        `${sourceCanvas.width}:${sourceCanvas.height}`,
+                      ) && (
+                        <option
+                          value={`${sourceCanvas.width}:${sourceCanvas.height}`}
+                        >
+                          {t("timeline.properties.sourceSize", {
+                            width: sourceCanvas.width,
+                            height: sourceCanvas.height,
+                          })}
+                        </option>
+                      )}
                     {![
                       "1280:720",
                       "1920:1080",

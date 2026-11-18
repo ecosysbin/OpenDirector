@@ -19,6 +19,8 @@ export const generation = {
   "generation.mode.continuation": "Continue",
   "generation.imagePreset": "Image presets",
   "generation.videoMode": "Video mode",
+  "generation.continuationSource": "Continues",
+  "generation.continuationSource.none": "Not set (use attached reference)",
   "generation.preset.none": "Free creation",
   "generation.preset.productViews": "Product three views",
   "generation.preset.demo": "Local interaction demo",

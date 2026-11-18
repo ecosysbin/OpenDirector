@@ -1,0 +1,9 @@
+[perf] upscale: raise the default tile from 256 to 512
+
+Measured on the live pod (RealESRGAN_x4plus, fp16, 1344x768 frames):
+tile 256 -> 1.70 s/frame, 512 -> 0.90, 1024 -> 0.84.
+
+512 already captures 93% of the win while peak activation stays near 1.6 GB,
+leaving headroom inside the 10-12 GB that stays free once H3 sampling is done.
+1024 buys ~21 s on a 345-frame clip and sits close enough to the limit that a
+short VRAM spike takes the silent fallback path back to 768p frames.

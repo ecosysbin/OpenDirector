@@ -979,6 +979,7 @@ export class CreationProjection {
                 : (settings?.aspectRatio ?? null),
             generateAudio: settings?.audioEnabled ?? true,
             upscale: settings?.upscale === true,
+            continuationOf: settings?.continuationOf ?? null,
             resolution:
               settings?.resolution === "auto"
                 ? "auto"

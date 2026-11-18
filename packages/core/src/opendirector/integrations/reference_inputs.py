@@ -96,6 +96,20 @@ def continuation_source(store, project_id, meta, config):
     return source['externalTaskId']
 
 
+def continuation_node_source(store, project_id, node_id, config):
+    """Job ID of the clip a declared source node produced last.
+
+    A chain is laid out before any clip exists, so the source is a node ID: the
+    job ID is read from that node's newest finished clip when this clip runs.
+    """
+    found = store.latest_clip_for_node(project_id, node_id, config)
+    if not found or not found[0]:
+        raise ProjectError('「续接自」的源节点还没有已完成的视频：请先生成上游片段再生成这一段，或改用引用素材接续。',
+                           409, code='continuation_source_pending')
+    job_id, width, height = found
+    return job_id, (width, height)
+
+
 def generation_references(store, task, config, *, complete=True, overrides=None):
     kind = task['kind']
     rules = input_rules({**config, 'kind': 'agent' if kind == 'text' else kind})
@@ -116,6 +130,12 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
     if kind == 'video' and mode not in rules['videoModes']:
         raise ProjectError('当前模型不支持接续生成，请选择 vLLM-Omni MiniMax-H3。' if mode == 'continuation'
                            else '当前模型接口尚未接通素材参考模式，请选择该模型支持的生成方式。')
+    declared = (task.get('parameters') or {}).get('continuationOf') or task.get('continuationOf')
+    if kind == 'video' and mode == 'continuation' and declared:
+        # Declared source wins over attached references: the chain is stated by
+        # node ID and resolved against that node's newest finished clip.
+        result['continueFrom'], result['continueSize'] = continuation_node_source(
+            store, task['projectId'], declared, config)
     total_audio_ms, total_video_ms, media_bytes = 0, 0, 0
     source_metadata, text_context = [], []
     role_by_asset = {str(value['assetId']): value['role'] for value in task.get('referenceRoles') or []}
@@ -124,7 +144,8 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
         entry = {'assetId': meta['id'], 'fingerprint': meta['fingerprint'], 'kind': source_kind, 'transmission': 'content'}
         if source_kind == 'video' and kind == 'video' and mode == 'continuation':
             if result['continueFrom']:
-                raise ProjectError('接续生成只能引用一段上一段视频。')
+                raise ProjectError('接续生成只能有一个来源：已通过「续接自」指定上游节点，请移除引用的视频素材。'
+                                   if declared else '接续生成只能引用一段上一段视频。')
             result['continueFrom'] = continuation_source(store, task['projectId'], meta, config)
             result['continueSize'] = (meta.get('width'), meta.get('height'))
             # The service continues from its cached latents; the file is not uploaded.

@@ -87,6 +87,7 @@ export const timeline = {
   "timeline.properties.nudgeClipForward": "Move clip forward",
   "timeline.properties.delete": "Delete clip",
   "timeline.properties.aspect": "Aspect ratio",
+  "timeline.properties.sourceSize": "Source size · {width}×{height}",
   "timeline.properties.importSize": "Imported size · {width}×{height}",
   "timeline.properties.hint":
     "Select a clip to edit its source in/out points, speed, and volume. Visual clips play in sequence; audio tracks keep explicit starts and cannot overlap on one track.",

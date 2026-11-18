@@ -56,6 +56,7 @@ const SETTINGS_KEYS = [
   "durationFromReference",
   "imagePreset",
   "upscale",
+  "continuationOf",
   "modelConfigId",
 ] as const;
 

@@ -79,6 +79,7 @@ export const timeline = {
   "timeline.properties.nudgeClipForward": "片段后移",
   "timeline.properties.delete": "删除片段",
   "timeline.properties.aspect": "画面比例",
+  "timeline.properties.sourceSize": "原素材尺寸 · {width}×{height}",
   "timeline.properties.importSize": "导入尺寸 · {width}×{height}",
   "timeline.properties.hint":
     "点击轨道片段编辑源入点、出点、播放速度与音量。视觉片段自动顺序衔接；音轨保留显式起点，同轨不能重叠。",

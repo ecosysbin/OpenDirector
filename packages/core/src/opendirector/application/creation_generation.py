@@ -58,6 +58,29 @@ class ProviderMedia:
     def __init__(self, runtime):
         self.runtime = runtime
 
+    def latest_clip_for_node(self, project_id, node_id, config):
+        """Job ID and delivered pixels of a node's newest finished clip on this server.
+
+        Declared continuation is stored as a node ID, so the job ID only exists
+        once the source clip has actually run; an unfinished source returns None
+        and the caller reports it instead of falling back to a plain clip.
+        """
+        snapshot = self.runtime.projects.snapshot(project_id)
+        assets = {asset.id: asset for asset in snapshot.assets}
+        for job in reversed(list(snapshot.jobs)):
+            spec, model = job.inputSnapshot.spec, job.inputSnapshot.model
+            if str(job.originItemId or spec.id) != str(node_id) or spec.kind != 'video':
+                continue
+            if job.status != 'succeeded' or not job.externalTaskId or not job.asset:
+                continue
+            if (model.url.rstrip('/') != config['url'].rstrip('/') or model.modelId != config['modelId']
+                    or (model.protocol and config.get('protocol') and model.protocol != config['protocol'])):
+                continue
+            asset = assets.get(job.asset.assetId)
+            meta = getattr(asset, 'metadata', None)
+            return job.externalTaskId, getattr(meta, 'width', None), getattr(meta, 'height', None)
+        return None
+
     def asset(self, project_id, asset_id):
         stream, asset = self.runtime.assets.open_media(project_id, asset_id)
         with stream:

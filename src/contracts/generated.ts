@@ -1530,6 +1530,7 @@ export interface VideoParametersInput extends ContractInput {
   readonly aspectRatio?: string | null;
   readonly resolution?: string;
   readonly upscale?: boolean;
+  readonly continuationOf?: string | null;
 }
 
 export interface VideoUpscaleInput {
@@ -3126,6 +3127,8 @@ export interface VideoParameters extends Contract {
   readonly aspectRatio: string | null;
   readonly resolution: string;
   readonly upscale?: boolean;
+  /** Node whose finished clip this one continues; resolved to a job at run time. */
+  readonly continuationOf?: string | null;
 }
 
 export interface VideoUpscale {
