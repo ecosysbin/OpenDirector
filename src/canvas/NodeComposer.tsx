@@ -234,9 +234,12 @@ export function NodeComposer({
       next.videoMode === "continuation"
         ? planned?.id
         : next.continuationOf;
-    const resolved = changeGenerationSettings(next, {
-      continuationOf: plannedSource,
-    });
+    // Only rebuild when the source really changed: an unchanged object would
+    // queue a pointless canvas write and collide with the next one.
+    const resolved =
+      next.continuationOf === plannedSource
+        ? next
+        : changeGenerationSettings(next, { continuationOf: plannedSource });
     onUpdate({
       settings: target
         ? serviceGenerationSettings(resolved, target, incomingNodes)
