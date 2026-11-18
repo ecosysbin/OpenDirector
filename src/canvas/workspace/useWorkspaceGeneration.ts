@@ -715,7 +715,9 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
       const incoming = edges
         .map((edge) => nodes.find((node) => node.id === edge.source))
         .filter((node): node is CanvasNode => Boolean(node));
-      runServiceGeneration(next, incoming);
+      // The finished clip is still being settled on the server; writing the next
+      // one immediately races that commit and surfaces as a version conflict.
+      window.setTimeout(() => runServiceGeneration(next, incoming), 4000);
     }
   }, [jobs]);
 
