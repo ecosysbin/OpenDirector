@@ -705,16 +705,24 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
           !node.data.src &&
           (node.data.prompt ?? "").trim().length > 0,
       );
+      const outgoing = historyRef.current.present.edges
+        .filter((edge) => edge.source === nodeId)
+        .map((edge) => edge.target);
       console.info("[chain]", {
         job: key,
         nodeId,
         auto: source?.data.settings?.autoContinue,
-        outgoing: historyRef.current.present.edges
-          .filter((edge) => edge.source === nodeId)
-          .map((edge) => edge.target),
+        outgoing,
         wired: wired.map((candidate) => candidate?.id ?? "missing"),
         next: next?.id ?? "none",
       });
+      // The browser here has no reachable console, so the decision also goes
+      // out as a request the server log records verbatim.
+      void fetch(
+        `/api/chain-probe?node=${nodeId}&auto=${source?.data.settings?.autoContinue === true}` +
+          `&out=${outgoing.join(",")}&wired=${wired.map((candidate) => candidate?.id ?? "missing").join(",")}` +
+          `&next=${next?.id ?? "none"}`,
+      ).catch(() => undefined);
       if (!next) continue;
       if (
         jobs.some(
