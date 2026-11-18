@@ -683,10 +683,24 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
   // therefore start the whole chain, and an unmarked clip simply stops there.
   const chainedJobs = useRef(new Set<string>());
   useEffect(() => {
+    // One clip at a time: nothing new starts while a job is still in flight.
+    if (jobs.some((job) => job.status === "running")) return;
     for (const job of jobs) {
       if (job.status !== "succeeded") continue;
       const key = job.id;
       if (chainedJobs.current.has(key)) continue;
+      // Only the newest finished clip hands the chain on, so reloading a canvas
+      // that holds several finished clips cannot fan out several follow-ups.
+      const newest = jobs
+        .filter((candidate) => candidate.status === "succeeded")
+        .reduce<Job | undefined>(
+          (best, candidate) =>
+            !best || (candidate.createdAt ?? 0) > (best.createdAt ?? 0)
+              ? candidate
+              : best,
+          undefined,
+        );
+      if (newest?.id !== key) continue;
       // A job restored after a reload has no in-memory origin; the node it
       // belongs to survives in originItemId, which the server keeps.
       const nodeId = job.resultSource?.nodeId ?? job.nodeId;
@@ -701,9 +715,7 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
         .map((edge) => nodes.find((node) => node.id === edge.target));
       const next = wired.find(
         (node): node is CanvasNode =>
-          node?.type === "video" &&
-          !node.data.src &&
-          (node.data.prompt ?? "").trim().length > 0,
+          node?.type === "video" && (node.data.prompt ?? "").trim().length > 0,
       );
       const outgoing = historyRef.current.present.edges
         .filter((edge) => edge.source === nodeId)
