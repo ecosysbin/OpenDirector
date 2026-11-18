@@ -230,10 +230,10 @@ export function NodeComposer({
             (node) => node.type === "video" && !node.data.src,
           )
         : undefined;
+    // Another video mode keeps no continuation source: a leftover id would be
+    // sent as a continuation hint for a clip that is not one.
     const plannedSource =
-      next.videoMode === "continuation"
-        ? planned?.id
-        : next.continuationOf;
+      next.videoMode === "continuation" ? planned?.id : undefined;
     // Only rebuild when the source really changed: an unchanged object would
     // queue a pointless canvas write and collide with the next one.
     const resolved =
