@@ -78,6 +78,8 @@ export interface GenerationSettings {
   upscale?: boolean;
   /** H3: node id this clip continues; resolved to a finished job only when it runs. */
   continuationOf?: string;
+  /** Keep handing the chain on: run the next wired clip once this one lands. */
+  autoContinue?: boolean;
   /** A model configured in the local API; catalog models leave it unset. */
   modelConfigId?: string;
 }

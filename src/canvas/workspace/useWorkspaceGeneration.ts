@@ -678,6 +678,47 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
     importAbort.current?.abort();
     resultBinding.current = null;
   };
+  // A finished clip hands the chain on by itself: the next wired continuation
+  // node already has its prompt, so nothing else is needed to keep going. Only
+  // nodes that opted in carry it forward, and a failure simply stops the chain.
+  const chainedJobs = useRef(new Set<string>());
+  useEffect(() => {
+    for (const job of jobs) {
+      if (job.status !== "succeeded" || !job.resultSource) continue;
+      const key = job.id;
+      if (chainedJobs.current.has(key)) continue;
+      const nodeId = job.resultSource.nodeId;
+      const nodes = historyRef.current.present.nodes;
+      const source = nodes.find((node) => node.id === nodeId);
+      if (!source?.data.settings?.autoContinue) continue;
+      const next = nodes.find(
+        (node) =>
+          node.type === "video" &&
+          node.data.settings?.videoMode === "continuation" &&
+          node.data.settings?.continuationOf === nodeId &&
+          !node.data.src &&
+          node.data.prompt.trim().length > 0,
+      );
+      if (!next) continue;
+      if (
+        jobs.some(
+          (candidate) =>
+            candidate.status === "running" &&
+            candidate.resultSource?.nodeId === next.id,
+        )
+      )
+        continue;
+      chainedJobs.current.add(key);
+      const edges = historyRef.current.present.edges.filter(
+        (edge) => edge.target === next.id,
+      );
+      const incoming = edges
+        .map((edge) => nodes.find((node) => node.id === edge.source))
+        .filter((node): node is CanvasNode => Boolean(node));
+      runServiceGeneration(next, incoming);
+    }
+  }, [jobs]);
+
   rt.updateJob = updateJob;
   rt.refreshRunning = refreshRunning;
   rt.revealResults = revealResults;

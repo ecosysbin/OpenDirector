@@ -19,6 +19,7 @@ export const generation = {
   "generation.mode.continuation": "Continue",
   "generation.imagePreset": "Image presets",
   "generation.videoMode": "Video mode",
+  "generation.autoContinue": "Run the next wired clip when this one lands",
   "generation.preset.none": "Free creation",
   "generation.preset.productViews": "Product three views",
   "generation.preset.demo": "Local interaction demo",

@@ -599,6 +599,27 @@ export function NodeComposer({
                 ))}
               </select>
             )}
+            {settings.mode === "video" &&
+              settings.videoMode === "continuation" && (
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={Boolean(settings.autoContinue)}
+                    disabled={running}
+                    onChange={(event) =>
+                      updateSettings({ autoContinue: event.target.checked })
+                    }
+                  />
+                  {t("generation.autoContinue")}
+                </label>
+              )}
             {followsReference && (
               <select
                 aria-label={t("generation.referenceMode")}
