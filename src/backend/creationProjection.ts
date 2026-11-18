@@ -747,6 +747,7 @@ export class CreationProjection {
                         : spec.parameters.resolution,
                     upscale: spec.parameters.upscale,
                     continuationOf: spec.parameters.continuationOf ?? undefined,
+                    autoContinue: spec.parameters.autoContinue === true,
                     frameSlotsInitialized: true,
                   }
                 : {}),
@@ -981,6 +982,7 @@ export class CreationProjection {
             generateAudio: settings?.audioEnabled ?? true,
             upscale: settings?.upscale === true,
             continuationOf: settings?.continuationOf ?? null,
+            autoContinue: settings?.autoContinue === true,
             resolution:
               settings?.resolution === "auto"
                 ? "auto"

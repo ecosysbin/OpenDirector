@@ -14432,6 +14432,25 @@
             "description": "Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.",
             "title": "Upscale",
             "type": "boolean"
+          },
+          "continuationOf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas node whose finished clip this clip continues.",
+            "title": "Continuationof"
+          },
+          "autoContinue": {
+            "default": false,
+            "description": "Run the wired continuation clip once this clip finishes.",
+            "title": "Autocontinue",
+            "type": "boolean"
           }
         },
         "title": "VideoParameters",
@@ -30232,6 +30251,25 @@
             "default": false,
             "description": "Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.",
             "title": "Upscale",
+            "type": "boolean"
+          },
+          "continuationOf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas node whose finished clip this clip continues.",
+            "title": "Continuationof"
+          },
+          "autoContinue": {
+            "default": false,
+            "description": "Run the wired continuation clip once this clip finishes.",
+            "title": "Autocontinue",
             "type": "boolean"
           }
         },

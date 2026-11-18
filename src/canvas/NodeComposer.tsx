@@ -240,11 +240,12 @@ export function NodeComposer({
       next.continuationOf === plannedSource
         ? next
         : changeGenerationSettings(next, { continuationOf: plannedSource });
-    onUpdate({
-      settings: target
-        ? serviceGenerationSettings(resolved, target, incomingNodes)
-        : resolved,
-    });
+    const service = target
+      ? serviceGenerationSettings(resolved, target, incomingNodes)
+      : resolved;
+    // The chain switch is a canvas-side choice: keep it whatever the service
+    // settings reshape, otherwise the tick never survives the next update.
+    onUpdate({ settings: { ...service, autoContinue: next.autoContinue } });
   };
   const togglePanel = (next: Panel, anchor: HTMLElement) => {
     panelAnchor.current = anchor;

@@ -49,6 +49,10 @@ class VideoParameters(Contract):
     # run time from the source node's newest finished clip.
     continuationOf: str | None = Field(default=None, exclude_if=lambda value: value is None,
                                        description='Canvas node whose finished clip this clip continues.')
+    # A canvas-side choice that still has to survive a reload: the editor reads it
+    # back to decide whether the wired next clip starts by itself.
+    autoContinue: bool = Field(default=False, exclude_if=lambda value: value is False,
+                               description='Run the wired continuation clip once this clip finishes.')
 
 
 # Music models count audio frames at 25 per second, between 200 and 9000 frames.
