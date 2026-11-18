@@ -258,6 +258,7 @@ export function VideoCapabilitiesEditor({
                 update(
                   checked
                     ? {
+                        custom: true,
                         regenerate: true,
                         steps: "",
                         flowShift: "",
