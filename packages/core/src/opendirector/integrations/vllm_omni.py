@@ -25,6 +25,10 @@ FPS = 24
 RATIOS = {'16:9', '9:16', '1:1', '4:3', '3:4'}
 RATIO_VALUES = {'21:9': 21 / 9, '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1.0, '3:4': 3 / 4, '9:16': 9 / 16}
 # The upscale build of the service ships these weights next to the H3 weights.
+import logging
+
+log = logging.getLogger(__name__)
+
 UPSCALE_MODEL_PATH = '/models/Upscaler/realesrgan-x4plus/RealESRGAN_x4plus.pth'
 
 
@@ -136,6 +140,7 @@ class VllmOmniGeneration:
             width, height = prepared['continueSize'] or (None, None)
             if width and height:
                 fields['size'] = f'{width}x{height}'
+            log.info('continual canvas %s continueSize=%s size=%s', (width, height), prepared['continueSize'], fields.get('size'))
         else:
             if mode == 'reference':
                 extra['task'] = 'ref2va'
@@ -186,9 +191,21 @@ class VllmOmniGeneration:
                     await submitted(external_id)
                 stage = 'poll'
                 url = base + '/' + quote(external_id, safe='')
+                missed = 0
                 while True:
-                    async with client.stream('GET', url, headers=headers) as response:
-                        value = json.loads(await bounded(response, stage=stage, secrets=secrets))
+                    try:
+                        async with client.stream('GET', url, headers=headers) as response:
+                            value = json.loads(await bounded(response, stage=stage, secrets=secrets))
+                    except (httpx.TimeoutException, httpx.TransportError) as exc:
+                        # The service blocks its event loop while it generates, so a
+                        # poll connection can drop mid-run even though the job is
+                        # alive. Reconnect instead of declaring the job interrupted.
+                        missed += 1
+                        if missed > 12:
+                            raise transport_failure(stage, timeout=isinstance(exc, httpx.TimeoutException)) from None
+                        await asyncio.sleep(max(self.poll_interval, 4))
+                        continue
+                    missed = 0
                     status = value.get('status')
                     if status == 'completed':
                         stage = 'download'
