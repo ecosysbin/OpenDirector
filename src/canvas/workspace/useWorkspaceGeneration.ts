@@ -678,9 +678,10 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
     importAbort.current?.abort();
     resultBinding.current = null;
   };
-  // A finished clip hands the chain on by itself: the next wired continuation
-  // node already has its prompt, so nothing else is needed to keep going. Only
-  // nodes that opted in carry it forward, and a failure simply stops the chain.
+  // A finished clip hands the chain on by itself: the continuation node wired
+  // after it opts in per segment, so each clip says "start me when the previous
+  // one lands". A node that did not opt in simply waits for a manual run, and a
+  // failure stops the chain because the next node never gets its turn.
   const chainedJobs = useRef(new Set<string>());
   useEffect(() => {
     for (const job of jobs) {
@@ -690,7 +691,7 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
       const nodeId = job.resultSource.nodeId;
       const nodes = historyRef.current.present.nodes;
       const source = nodes.find((node) => node.id === nodeId);
-      if (!source?.data.settings?.autoContinue) continue;
+      if (!source) continue;
       const next = nodes.find(
         (node) =>
           node.type === "video" &&
@@ -699,7 +700,7 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
           !node.data.src &&
           node.data.prompt.trim().length > 0,
       );
-      if (!next) continue;
+      if (!next?.data.settings?.autoContinue) continue;
       if (
         jobs.some(
           (candidate) =>
