@@ -689,7 +689,7 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
       if (chainedJobs.current.has(key)) continue;
       // A job restored after a reload has no in-memory origin; the node it
       // belongs to survives in originItemId, which the server keeps.
-      const nodeId = job.resultSource?.nodeId ?? job.originItemId;
+      const nodeId = job.resultSource?.nodeId ?? job.nodeId;
       if (!nodeId) continue;
       const nodes = historyRef.current.present.nodes;
       const source = nodes.find((node) => node.id === nodeId);
@@ -707,8 +707,7 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
         jobs.some(
           (candidate) =>
             candidate.status === "running" &&
-            (candidate.resultSource?.nodeId ?? candidate.originItemId) ===
-              next.id,
+            (candidate.resultSource?.nodeId ?? candidate.nodeId) === next.id,
         )
       )
         continue;
