@@ -599,18 +599,27 @@ export function NodeComposer({
                 ))}
               </select>
             )}
-            {settings.mode === "video" &&
-              settings.videoMode === "continuation" && (
+            {settings.mode === "video" && (
                 <label
                   style={{
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
-                    gap: 6,
+                    gap: 4,
                     fontSize: 12,
+                    width: "fit-content",
+                    flex: "0 0 auto",
+                    margin: 0,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   <input
                     type="checkbox"
+                    style={{
+                      width: 12,
+                      height: 12,
+                      margin: 0,
+                      flex: "0 0 auto",
+                    }}
                     checked={Boolean(settings.autoContinue)}
                     disabled={running}
                     onChange={(event) =>
