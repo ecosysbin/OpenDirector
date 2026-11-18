@@ -222,6 +222,16 @@ export function backendReferenceIssue(
 ): string | null {
   const kind = node.data.kind;
   const rules = config.inputRules;
+  // A declared continuation source may be an empty node: only its finished job
+  // id is needed, so nothing is read from it and no file is uploaded.
+  if (
+    settings.mode === "video" &&
+    settings.videoMode === "continuation" &&
+    kind === "video" &&
+    !node.data.src &&
+    settings.continuationOf === node.id
+  )
+    return null;
   if (
     settings.mode === "video" &&
     settings.videoMode === "first-last" &&
@@ -274,6 +284,17 @@ export function backendReferences(
 ): BackendReference[] {
   const usable = incoming
     .filter((node) => !backendReferenceIssue(node, settings, config))
+    // A planned continuation source carries no file: its job id is read from the
+    // project instead, so it never joins the upload list.
+    .filter(
+      (node) =>
+        !(
+          settings.mode === "video" &&
+          settings.videoMode === "continuation" &&
+          node.type === "video" &&
+          !node.data.src
+        ),
+    )
     .flatMap((node) =>
       node.type === "subject"
         ? subjectReferenceNodes(node).filter(

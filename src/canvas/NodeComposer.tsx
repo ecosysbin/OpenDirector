@@ -222,10 +222,25 @@ export function NodeComposer({
   const updateSettings = (patch: Partial<ComposerSettings>) => {
     const next = changeGenerationSettings(settings, patch);
     const target = backendModel(next, backendModels);
+    // A continuation whose source is still an empty node keeps that node id:
+    // the run then resolves the source clip's finished job instead of a file.
+    const planned =
+      next.mode === "video" && next.videoMode === "continuation"
+        ? incomingNodes.find(
+            (node) => node.type === "video" && !node.data.src,
+          )
+        : undefined;
+    const plannedSource =
+      next.videoMode === "continuation"
+        ? planned?.id
+        : next.continuationOf;
+    const resolved = changeGenerationSettings(next, {
+      continuationOf: plannedSource,
+    });
     onUpdate({
       settings: target
-        ? serviceGenerationSettings(next, target, incomingNodes)
-        : next,
+        ? serviceGenerationSettings(resolved, target, incomingNodes)
+        : resolved,
     });
   };
   const togglePanel = (next: Panel, anchor: HTMLElement) => {
