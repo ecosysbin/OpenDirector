@@ -670,12 +670,9 @@ export function backendBlocker(
       )
         return tNow("errors.rules.firstFrameMissing");
     }
-    if (
-      settings.videoMode === "continuation" &&
-      settings.continuationOf &&
-      references.some((item) => item.role === "continuation")
-    )
-      return tNow("errors.rules.continuationBoth");
+    // The edge is the only continuation source. A remembered node id is just the
+    // placeholder while that node has no clip yet, so both together are not two
+    // sources and must not block the run.
     if (
       settings.videoMode === "continuation" &&
       !settings.continuationOf &&

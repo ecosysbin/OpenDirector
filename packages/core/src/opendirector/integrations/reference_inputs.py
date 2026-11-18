@@ -131,7 +131,14 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
         raise ProjectError('当前模型不支持接续生成，请选择 vLLM-Omni MiniMax-H3。' if mode == 'continuation'
                            else '当前模型接口尚未接通素材参考模式，请选择该模型支持的生成方式。')
     declared = (task.get('parameters') or {}).get('continuationOf') or task.get('continuationOf')
-    if kind == 'video' and mode == 'continuation' and declared:
+    # The wired edge is the source of truth once it has a clip. The remembered
+    # node id only stands in while that node is still empty, so an attached
+    # continuation video must not be reported as a second source.
+    attached_continuation = bool(
+        kind == 'video' and mode == 'continuation'
+        and any(source_kind == 'video'
+                for _, _, source_kind in references(store, task['projectId'], task['referenceIds'], overrides)))
+    if kind == 'video' and mode == 'continuation' and declared and not attached_continuation:
         # Declared source wins over attached references: the chain is stated by
         # node ID and resolved against that node's newest finished clip.
         result['continueFrom'], result['continueSize'] = continuation_node_source(
