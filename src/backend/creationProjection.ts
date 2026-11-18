@@ -746,6 +746,7 @@ export class CreationProjection {
                         ? "auto"
                         : spec.parameters.resolution,
                     upscale: spec.parameters.upscale,
+                    continuationOf: spec.parameters.continuationOf ?? undefined,
                     frameSlotsInitialized: true,
                   }
                 : {}),
