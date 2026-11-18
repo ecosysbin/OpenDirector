@@ -109,6 +109,8 @@ export const errors = {
   "errors.rules.firstFrameMissing": "首帧素材未连接或已丢失，请重新选择。",
   "errors.rules.continuationSource":
     "接续需要连接一段由当前 H3 服务生成的视频作为上一段。",
+  "errors.rules.continuationBoth":
+    "接续只能有一个来源：已指定「续接自」节点，请移除引用的视频素材。",
   "errors.rules.referenceLimit": "参考{kind}超过当前模型上限（{limit} 个）。",
   "errors.rules.referenceFileSize": "参考文件超过当前模型的大小限制",
   "errors.rules.referenceBudget": "参考总大小超过当前模型的请求预算",

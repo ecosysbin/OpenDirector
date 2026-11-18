@@ -651,6 +651,13 @@ export function backendBlocker(
     }
     if (
       settings.videoMode === "continuation" &&
+      settings.continuationOf &&
+      references.some((item) => item.role === "continuation")
+    )
+      return tNow("errors.rules.continuationBoth");
+    if (
+      settings.videoMode === "continuation" &&
+      !settings.continuationOf &&
       references.filter((item) => item.role === "continuation").length !== 1
     )
       return tNow("errors.rules.continuationSource");
