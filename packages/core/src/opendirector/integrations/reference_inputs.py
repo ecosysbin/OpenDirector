@@ -96,6 +96,29 @@ def continuation_source(store, project_id, meta, config):
     return source['externalTaskId']
 
 
+def generation_canvas(width, height, config, upscaled=None):
+    """The canvas H3 generated on, before any delivered upscaling.
+
+    Continuing a clip reuses the service's cached latents, which belong to the
+    generated canvas. A clip that asked for upscaling comes back multiplied by
+    `scale`, so the tail's request frame has to undo that factor or H3 rejects
+    the continuation with a canvas mismatch.
+    """
+    if not width or not height:
+        return (width, height)
+    settings = (((config.get('videoCapabilities') or {}).get('inference') or {}).get('upscale')) or {}
+    scale = float(settings.get('scale') or 2.0)
+    if scale <= 1:
+        return (width, height)
+    # 768P is the widest generated edge; anything beyond it is a delivered size.
+    ceiling = 1344
+    if upscaled is False:
+        return (width, height)
+    if upscaled or max(width, height) > ceiling:
+        return (round(width / scale), round(height / scale))
+    return (width, height)
+
+
 def continuation_node_source(store, project_id, node_id, config):
     """Job ID of the clip a declared source node produced last.
 
@@ -106,8 +129,8 @@ def continuation_node_source(store, project_id, node_id, config):
     if not found or not found[0]:
         raise ProjectError('「续接自」的源节点还没有已完成的视频：请先生成上游片段再生成这一段，或改用引用素材接续。',
                            409, code='continuation_source_pending')
-    job_id, width, height = found
-    return job_id, (width, height)
+    job_id, width, height, upscaled = found
+    return job_id, generation_canvas(width, height, config, upscaled)
 
 
 def generation_references(store, task, config, *, complete=True, overrides=None):
@@ -154,7 +177,7 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
                 raise ProjectError('接续生成只能有一个来源：已通过「续接自」指定上游节点，请移除引用的视频素材。'
                                    if declared else '接续生成只能引用一段上一段视频。')
             result['continueFrom'] = continuation_source(store, task['projectId'], meta, config)
-            result['continueSize'] = (meta.get('width'), meta.get('height'))
+            result['continueSize'] = generation_canvas(meta.get('width'), meta.get('height'), config)
             # The service continues from its cached latents; the file is not uploaded.
             entry.update(role='continuation_source', transmission='latent')
             result['manifest'].append(entry)

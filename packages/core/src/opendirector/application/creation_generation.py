@@ -78,7 +78,8 @@ class ProviderMedia:
                 continue
             asset = assets.get(job.asset.assetId)
             meta = getattr(asset, 'metadata', None)
-            return job.externalTaskId, getattr(meta, 'width', None), getattr(meta, 'height', None)
+            return (job.externalTaskId, getattr(meta, 'width', None), getattr(meta, 'height', None),
+                    bool(getattr(spec.parameters, 'upscale', False)))
         return None
 
     def asset(self, project_id, asset_id):
