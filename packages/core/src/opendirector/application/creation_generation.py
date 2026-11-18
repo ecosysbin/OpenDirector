@@ -224,9 +224,11 @@ class CreationGeneration(GenerationRuntime):
             if intent.get('aspectRatio'):
                 params['ratio'] = intent['aspectRatio']
             output = dict(intent)
-            if output.get('resolution') == 'auto' and output.get('aspectRatio') and rules['profile'] in {'standard-video', 'fasth3-omni', 'vllm-omni-h3'}:
-                if node.get('videoMode') == 'continuation':
-                    raise ProjectError('接续沿用上一段视频的画幅，请将比例设为自动。', 422)
+            # A continuation follows the source clip's frame, so a chosen ratio is
+            # ignored rather than rejected; the form derives it from the source size.
+            if (output.get('resolution') == 'auto' and output.get('aspectRatio')
+                    and node.get('videoMode') != 'continuation'
+                    and rules['profile'] in {'standard-video', 'fasth3-omni', 'vllm-omni-h3'}):
                 caps = rules.get('videoCapabilities') or {}
                 choices = [item for item in caps.get('outputs', []) if seconds is None or seconds in item['durations']]
                 if not choices:

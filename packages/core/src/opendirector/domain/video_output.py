@@ -44,7 +44,10 @@ def apply_video_resolution(parameters, node, records, config, output):
         return  # Preserve the adapter's existing automatic sizing and recovery.
     resolution = str(resolution).strip().upper()
     if node.get('videoMode') == 'continuation':
-        raise ProjectError('接续沿用上一段视频的尺寸，请将分辨率设为自动；未提交生成。')
+        # The source clip decides the canvas, so a chosen tier is ignored rather
+        # than rejected; the request frame is overwritten with the source pixels.
+        if seconds is not None: validate_video_duration(config, seconds, None)
+        return
     if resolution not in rules.get('outputResolutions', []):
         raise ProjectError('当前模型不支持所选分辨率，请重新选择；未提交生成。')
     if seconds is not None: validate_video_duration(config, seconds, resolution)

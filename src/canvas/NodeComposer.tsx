@@ -61,8 +61,6 @@ export interface NodeComposerProps {
   running?: boolean;
   /** Models configured in the local API, usable alongside the catalog. */
   backendModels?: readonly ModelConfig[];
-  /** Canvas nodes offered as a declared continuation source, including empty ones. */
-  videoNodes?: readonly CanvasNode[];
   referenceControls?: GenerationReferenceControls;
 }
 
@@ -87,7 +85,6 @@ export function NodeComposer({
   onPickReference,
   running = false,
   backendModels = [],
-  videoNodes = [],
   referenceControls,
 }: NodeComposerProps) {
   const { t } = useI18n();
@@ -582,33 +579,6 @@ export function NodeComposer({
                       : label}
                   </option>
                 ))}
-              </select>
-            )}
-            {mode === "video" && settings.videoMode === "continuation" && (
-              <select
-                aria-label={t("generation.continuationSource")}
-                value={settings.continuationOf ?? ""}
-                disabled={running}
-                onChange={(event) =>
-                  updateSettings({
-                    continuationOf: event.target.value || undefined,
-                  })
-                }
-              >
-                <option value="">
-                  {t("generation.continuationSource.none")}
-                </option>
-                {videoNodes
-                  .filter(
-                    (node) =>
-                      node.id !== selectedNode?.id &&
-                      (node.data.kind === "video" || !node.data.kind),
-                  )
-                  .map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.data.title || node.id}
-                    </option>
-                  ))}
               </select>
             )}
             {followsReference && (

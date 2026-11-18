@@ -19,8 +19,6 @@ export const generation = {
   "generation.mode.continuation": "接续",
   "generation.imagePreset": "图片创作预设",
   "generation.videoMode": "视频创作模式",
-  "generation.continuationSource": "续接自",
-  "generation.continuationSource.none": "未指定（沿用引用素材）",
   "generation.preset.none": "自由创作",
   "generation.preset.productViews": "产品三视图",
   "generation.preset.demo": "本地交互演示",

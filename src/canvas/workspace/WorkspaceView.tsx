@@ -1630,7 +1630,6 @@ export function WorkspaceView({ rt }: { rt: WorkspaceRuntime }) {
                 }}
                 running={composerRunning}
                 backendModels={backendCatalog.models}
-                videoNodes={doc.nodes}
               />
             )}
           </div>
