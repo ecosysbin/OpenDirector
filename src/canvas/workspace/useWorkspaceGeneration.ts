@@ -705,6 +705,16 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
           !node.data.src &&
           (node.data.prompt ?? "").trim().length > 0,
       );
+      console.info("[chain]", {
+        job: key,
+        nodeId,
+        auto: source?.data.settings?.autoContinue,
+        outgoing: historyRef.current.present.edges
+          .filter((edge) => edge.source === nodeId)
+          .map((edge) => edge.target),
+        wired: wired.map((candidate) => candidate?.id ?? "missing"),
+        next: next?.id ?? "none",
+      });
       if (!next) continue;
       if (
         jobs.some(
