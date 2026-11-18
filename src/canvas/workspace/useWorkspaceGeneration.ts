@@ -694,13 +694,16 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
       const nodes = historyRef.current.present.nodes;
       const source = nodes.find((node) => node.id === nodeId);
       if (!source?.data.settings?.autoContinue) continue;
-      const next = nodes.find(
-        (node) =>
-          node.type === "video" &&
-          node.data.settings?.videoMode === "continuation" &&
-          node.data.settings?.continuationOf === nodeId &&
+      // The line the user drew is the intent; the settings field is only
+      // written when the composer happens to save, so it can stay empty.
+      const wired = historyRef.current.present.edges
+        .filter((edge) => edge.source === nodeId)
+        .map((edge) => nodes.find((node) => node.id === edge.target));
+      const next = wired.find(
+        (node): node is CanvasNode =>
+          node?.type === "video" &&
           !node.data.src &&
-          node.data.prompt.trim().length > 0,
+          (node.data.prompt ?? "").trim().length > 0,
       );
       if (!next) continue;
       if (
