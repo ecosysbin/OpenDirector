@@ -684,10 +684,13 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
   const chainedJobs = useRef(new Set<string>());
   useEffect(() => {
     for (const job of jobs) {
-      if (job.status !== "succeeded" || !job.resultSource) continue;
+      if (job.status !== "succeeded") continue;
       const key = job.id;
       if (chainedJobs.current.has(key)) continue;
-      const nodeId = job.resultSource.nodeId;
+      // A job restored after a reload has no in-memory origin; the node it
+      // belongs to survives in originItemId, which the server keeps.
+      const nodeId = job.resultSource?.nodeId ?? job.originItemId;
+      if (!nodeId) continue;
       const nodes = historyRef.current.present.nodes;
       const source = nodes.find((node) => node.id === nodeId);
       if (!source?.data.settings?.autoContinue) continue;
@@ -704,7 +707,8 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
         jobs.some(
           (candidate) =>
             candidate.status === "running" &&
-            candidate.resultSource?.nodeId === next.id,
+            (candidate.resultSource?.nodeId ?? candidate.originItemId) ===
+              next.id,
         )
       )
         continue;
