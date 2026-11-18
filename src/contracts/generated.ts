@@ -1507,6 +1507,7 @@ export interface VideoInferenceInput {
   readonly audioFlowShift?: number | null;
   readonly guidanceScale?: number | null;
   readonly lora?: VideoLoraInput | null;
+  readonly regenerate?: boolean;
   readonly upscale?: VideoUpscaleInput | null;
 }
 
@@ -3105,6 +3106,7 @@ export interface VideoInference {
   readonly audioFlowShift?: number | null;
   readonly guidanceScale?: number | null;
   readonly lora?: VideoLora | null;
+  readonly regenerate?: boolean;
   readonly upscale?: VideoUpscale | null;
 }
 

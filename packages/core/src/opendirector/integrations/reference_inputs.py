@@ -138,7 +138,8 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
     rules = input_rules({**config, 'kind': 'agent' if kind == 'text' else kind})
     mode = task.get('videoMode', 'first_frame')
     prompt = project_content(task['promptContent'], speech=kind == 'audio')[0] if task.get('promptContent') is not None else task['prompt']
-    result = {'prompt': prompt, 'images': [], 'imageRoles': [], 'audios': [], 'videos': [], 'manifest': [], 'rules': rules, 'continueFrom': None, 'continueSize': None}
+    result = {'prompt': prompt, 'images': [], 'imageRoles': [], 'audios': [], 'videos': [], 'manifest': [], 'rules': rules,
+              'continueFrom': None, 'continueSize': None, 'refineSource': None}
     if kind == 'text':
         result['content'] = reference_content(store, task['projectId'], {'text': task['prompt'], 'content': task.get('promptContent'), 'assets': [{'id': asset_id} for asset_id in task['referenceIds']]}, manifest=result['manifest'], overrides=overrides)
         request_size(result['content'], rules['requestBytes'])
@@ -235,9 +236,16 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
                 raise ProjectError(f'参考视频需为不超过 {REFERENCE_MEDIA_SECONDS} 秒的有效视频。')
             total_video_ms += duration
             result['videos'].append(data_uri(data, meta['type']))
-            number = len(result['videos'])
-            result['prompt'] += f'\n参考{index}：{meta["name"]}，对应 <Video {number}>。'
-            entry.update(role='reference_video', number=number)
+            if rules['profile'] == 'vllm-omni-h3-refine':
+                # The draft is the whole input, not a <Video n> reference the
+                # prompt describes: the service refines its latents directly, so
+                # nothing is appended to the text condition.
+                result['refineSource'] = {'durationMs': duration, 'width': meta.get('width'), 'height': meta.get('height')}
+                entry.update(role='refine_source', number=len(result['videos']))
+            else:
+                number = len(result['videos'])
+                result['prompt'] += f'\n参考{index}：{meta["name"]}，对应 <Video {number}>。'
+                entry.update(role='reference_video', number=number)
         elif source_kind == 'audio' and kind == 'video' and mode in {'reference', 'continuation'} and rules['maxAudios']:
             if meta['type'] not in {'audio/wav', 'audio/x-wav', 'audio/mpeg'} or len(data) > 15 * 1024 * 1024:
                 raise ProjectError('参考音频需为不超过 15 MB 的 WAV 或 MP3。')
@@ -264,8 +272,12 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
         raise ProjectError(f'参考音频最多 3 段，总时长不超过 {REFERENCE_MEDIA_SECONDS} 秒。')
     if complete and mode == 'continuation' and not result['continueFrom']:
         raise ProjectError('接续生成需要引用上一段由 vLLM-Omni H3 生成的视频。')
+    if complete and rules['profile'] == 'vllm-omni-h3-refine' and not result['videos']:
+        raise ProjectError('精修服务需要引用一段已完成的视频作为草稿：请先用 768P 生成一段片段，再把该片段引用到精修节点。',
+                           422, code='refine_source_missing')
     if len(result['videos']) > rules.get('maxVideos', 0) or total_video_ms > REFERENCE_MEDIA_SECONDS * 1000:
-        raise ProjectError(f'视频参考最多 3 段，总时长不超过 {REFERENCE_MEDIA_SECONDS} 秒。')
+        raise ProjectError('精修服务只能引用一段视频草稿。' if rules['profile'] == 'vllm-omni-h3-refine'
+                           else f'视频参考最多 3 段，总时长不超过 {REFERENCE_MEDIA_SECONDS} 秒。')
     if rules['profile'] == 'fasth3-omni' and len(result['images']) + len(result['videos']) + len(result['audios']) > FASTH3_MEDIA_REFERENCE_LIMIT:
         raise ProjectError(f'FastH3-Omni 的图片、视频和音频参考合计最多 {FASTH3_MEDIA_REFERENCE_LIMIT} 项。')
     if media_bytes > 100 * 1024 * 1024:

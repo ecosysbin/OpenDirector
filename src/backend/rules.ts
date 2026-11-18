@@ -31,6 +31,8 @@ export interface VideoInference {
   audioFlowShift?: number;
   guidanceScale?: number;
   lora?: VideoLoRA;
+  /** The service refines an uploaded draft into 2K and owns steps, shift and sampler. */
+  regenerate?: boolean;
 }
 export interface VideoCapabilities {
   outputs: {

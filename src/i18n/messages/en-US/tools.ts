@@ -451,6 +451,10 @@ export const tools = {
   "tools.videoCapabilities.inference.heading": "Sampling settings (distilled LoRA)",
   "tools.videoCapabilities.inference.help":
     "Every generation carries these settings once filled in. The step count in the LoRA name (e.g. 8step) decides the steps when left blank, and flow shift falls back to 6.",
+  "tools.videoCapabilities.inference.regenerate":
+    "Refine service (Open-H3-Regenerate)",
+  "tools.videoCapabilities.inference.regenerateHelp":
+    "This service never draws a new clip: it refines one referenced 768P clip into 2K. Steps, flow shift and sampler are fixed server-side at 3 / 6 / euler, so the sampling fields below are not sent and neither a LoRA nor an extra upscale may be configured.",
   "tools.videoCapabilities.inference.steps": "Sampling steps",
   "tools.videoCapabilities.inference.stepsPlaceholder":
     "Blank uses the LoRA tier",

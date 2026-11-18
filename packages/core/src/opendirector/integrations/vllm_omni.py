@@ -85,6 +85,15 @@ def upscale_fields(config, task):
     }
 
 
+def refine_enabled(config):
+    """A regenerate build refines an uploaded draft; every request on it is a refine.
+
+    Its schedule is fixed server-side (3 steps, shift 6, euler), so the request
+    carries no sampling settings, no LoRA and no upscale fields.
+    """
+    return bool(((config.get('videoCapabilities') or {}).get('inference') or {}).get('regenerate'))
+
+
 def h3_frames(seconds):
     """Nearest H3 length on the 17n+5 frame grid, within 4-15 seconds."""
     steps = round((seconds * FPS - 5) / 17)
@@ -123,6 +132,8 @@ class VllmOmniGeneration:
         return {'profile': prepared['rules']['profile'], 'references': prepared['manifest']}
 
     def form(self, config, task, prepared):
+        if refine_enabled(config):
+            return self._refine_form(config, task, prepared)
         mode = task.get('videoMode', 'first_frame')
         seconds = task['parameters'].get('duration', 5)
         ratio = task['parameters'].get('ratio')
@@ -165,6 +176,27 @@ class VllmOmniGeneration:
         files.extend(('input_references', _upload(audio, f'audio_{index}')) for index, audio in enumerate(prepared['audios'], 1))
         fields['extra_params'] = json.dumps(extra)
         return fields, files
+
+    def _refine_form(self, config, task, prepared):
+        """Refine one draft clip into 2K.
+
+        `seconds` has to be sent: without it the service assumes its 8-second
+        tier, whose audio canvas matches no draft length and every request is
+        rejected with an audio-latent mismatch. `num_frames` is deliberately
+        omitted so the draft decides the frame count, and the size is left out
+        because the delivered frame is the draft's frame, doubled.
+        """
+        source = prepared.get('refineSource') or {}
+        if not prepared.get('videos') or not source.get('durationMs'):
+            raise ProjectError('精修服务需要一段已完成的视频草稿：请在素材参考模式引用该片段。', 422)
+        seconds = min(max(round(source['durationMs'] / 1000), 4), 15)
+        parameters = task.get('parameters') or {}
+        fields = {'model': config['modelId'], 'prompt': prepared['prompt'], 'seconds': str(seconds)}
+        width, height = source.get('width'), source.get('height')
+        ratio = ratio_for_size(f'{width}x{height}') if width and height else parameters.get('ratio')
+        fields['aspect_ratio'] = ratio if ratio in RATIOS else '16:9'
+        fields['extra_params'] = json.dumps({'task': 't2va', 'regenerate': True})
+        return fields, [('source_video', _upload(prepared['videos'][0], 'draft'))]
 
     async def generate(self, config, task, submitted, *, result_ready=None):
         headers = auth_headers(config)

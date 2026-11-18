@@ -282,6 +282,8 @@ export const errors = {
     "The LoRA name and path must be filled in together.",
   "errors.videoCapabilities.loraSteps":
     "The sampling steps do not match the distilled LoRA tier.",
+  "errors.videoCapabilities.regenerateOwnsSchedule":
+    "The refine service owns its sampling steps, flow shift and LoRA. Clear the sampling settings before enabling it.",
   "errors.tools.saveBeforeSubmit":
     "Save the tool settings before submitting the task.",
   "errors.tools.taskCancelled": "The task was cancelled.",

@@ -20,6 +20,7 @@ export interface VideoInferenceDraft {
   loraName: string;
   loraPath: string;
   loraScale: string;
+  regenerate?: boolean;
 }
 
 /** Distilled adapters carry their step count in the file name, e.g. 8step_v1.0_768p. */
@@ -56,6 +57,18 @@ export function videoOutputDrafts(
 export function createVideoInference(
   draft: VideoInferenceDraft,
 ): VideoInference | undefined {
+  if (draft.regenerate) {
+    // A regenerate build fixes its own schedule server-side and refuses an
+    // adapter or a step count, so nothing else may travel with the flag.
+    if (
+      [draft.steps, draft.flowShift, draft.audioFlowShift, draft.guidanceScale,
+        draft.loraName, draft.loraPath, draft.loraScale].some((value) =>
+        value.trim(),
+      )
+    )
+      throw new Error(tNow("errors.videoCapabilities.regenerateOwnsSchedule"));
+    return { regenerate: true };
+  }
   const loraName = draft.loraName.trim();
   const loraPath = draft.loraPath.trim();
   const numbers = [

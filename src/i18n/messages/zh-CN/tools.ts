@@ -419,6 +419,9 @@ export const tools = {
   "tools.videoCapabilities.inference.heading": "采样参数（蒸馏 LoRA）",
   "tools.videoCapabilities.inference.help":
     "填写后每次生成都会带这些采样参数；LoRA 名称里的档位（如 8step）决定步数，步骤留空时按该档位推断，flow shift 留空按 6。",
+  "tools.videoCapabilities.inference.regenerate": "精修服务（Open-H3-Regenerate）",
+  "tools.videoCapabilities.inference.regenerateHelp":
+    "该服务不生成新片段，只把引用进来的一段 768P 片段精修成 2K；步数、flow shift 与采样器由服务端固定为 3 / 6 / euler，因此下面的采样参数无需填写，也不能配置 LoRA 或叠加超分。",
   "tools.videoCapabilities.inference.steps": "采样步数",
   "tools.videoCapabilities.inference.stepsPlaceholder": "留空按 LoRA 档位",
   "tools.videoCapabilities.inference.flowShift": "flow shift",

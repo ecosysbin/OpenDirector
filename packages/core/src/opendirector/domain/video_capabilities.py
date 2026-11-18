@@ -60,10 +60,27 @@ class VideoInference(BaseModel):
     audioFlowShift: Annotated[float, Field(ge=0.0, le=60.0)] | None = Field(default=None, description='Flow shift for the sound branch.')
     guidanceScale: Annotated[float, Field(ge=0.0, le=20.0)] | None = Field(default=None, description='Guidance scale sent as guidance_scale.')
     lora: VideoLora | None = Field(default=None, description='Distilled acceleration weights, e.g. an 8-step Turbo LoRA.')
+    # A regenerate build refines an existing clip instead of sampling a new one:
+    # the request carries the draft as source_video and the service keeps its own
+    # 3-step schedule, so request-side sampling settings do not apply.
+    regenerate: bool = Field(default=False, exclude_if=lambda value: not value,
+                             description='The service refines an uploaded draft into 2K instead of generating a clip.')
     # Omitted while unset so snapshots frozen before this option serialize as
     # before; a written null would change their job input fingerprints.
     upscale: VideoUpscale | None = Field(default=None, exclude_if=lambda value: value is None,
                                          description='Super resolution weights used when a task asks for upscaling.')
+
+    @model_validator(mode='after')
+    def regenerate_owns_its_schedule(self):
+        # The regenerate build fixes steps=3, flow_shift=6 and sampler=euler
+        # server-side and rejects a per-request adapter, so declaring either one
+        # here would describe a request the service cannot honour.
+        if self.regenerate:
+            if self.lora is not None or self.steps is not None or self.flowShift is not None:
+                raise ValueError('精修服务使用固定的 3 步采样，不能再声明采样步数、flow shift 或 LoRA。')
+            if self.upscale is not None:
+                raise ValueError('精修服务自身即输出 2K，不能再叠加超分权重。')
+        return self
 
     @model_validator(mode='after')
     def lora_defines_its_grid(self):
@@ -124,6 +141,11 @@ def preset_capabilities(profile, model=''):
                             for label, width, height in [('480P', 832, 480), ('768P', 1344, 768),
                                                          ('1080P', 1920, 1088)]],
                 'defaultResolution': 'auto', 'defaultDuration': 5, 'dimensionStep': 32}
+    if profile == 'vllm-omni-h3-refine':
+        # The delivered frame is the draft's frame doubled (1344x768 -> 2560x1440),
+        # so it is not a fixed pixel declaration: 2K is the only label.
+        return {'outputs': [{'resolution': '2K', 'durations': list(range(4, 16))}],
+                'defaultResolution': '2K', 'defaultDuration': 5, 'dimensionStep': 32}
     if profile == 'minimax-h3-official':
         return {'outputs': [{'resolution': label, 'durations': list(range(4, 16))} for label in ['768P', '2K']],
                 'defaultResolution': '768P', 'defaultDuration': 5, 'dimensionStep': 2}
@@ -137,6 +159,10 @@ def preset_capabilities(profile, model=''):
 
 def capability_fields(config, rules):
     capabilities = config.get('videoCapabilities') or preset_capabilities(rules['profile'], config['modelId'])
+    if rules['profile'] == 'vllm-omni-h3-refine':
+        # The delivered frame is the draft doubled, whatever the draft's ratio
+        # is, so a saved spec would only misdescribe it: 2K is the whole menu.
+        capabilities = preset_capabilities('vllm-omni-h3-refine')
     if rules['profile'] == 'minimax-h3-official' and config['modelId'] in MINIMAX_MODELS:
         native = minimax_capabilities(config['modelId'])
         if config.get('videoCapabilities'):

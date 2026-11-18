@@ -34,6 +34,7 @@ export function capabilityDraft(
     loraName: inference?.lora?.name ?? "",
     loraPath: inference?.lora?.path ?? "",
     loraScale: text(inference?.lora?.scale),
+    regenerate: inference?.regenerate ?? false,
   };
 }
 
@@ -244,9 +245,50 @@ export function VideoCapabilitiesEditor({
           <div className="cw-output-spec-heading">
             <strong>{t("tools.videoCapabilities.inference.heading")}</strong>
           </div>
+          <label className="cw-domain-checkbox">
+            <input
+              type="checkbox"
+              checked={value.regenerate ?? false}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                // The service owns steps, shift, sampler and upscale, so a
+                // previously filled sampling block would only block the save.
+                // Its output menu is 2K alone: the delivered frame is the
+                // refined draft, not a declared tier.
+                update(
+                  checked
+                    ? {
+                        regenerate: true,
+                        steps: "",
+                        flowShift: "",
+                        audioFlowShift: "",
+                        guidanceScale: "",
+                        loraName: "",
+                        loraPath: "",
+                        loraScale: "",
+                        outputs: [
+                          {
+                            resolution: "2K",
+                            seconds: "4-15",
+                            width: "2560",
+                            height: "1440",
+                          },
+                        ],
+                        defaultResolution: "2K",
+                        dimensionStep: 32,
+                      }
+                    : { regenerate: false },
+                );
+              }}
+            />
+            {t("tools.videoCapabilities.inference.regenerate")}
+          </label>
           <p className="cw-capability-help">
-            {t("tools.videoCapabilities.inference.help")}
+            {value.regenerate
+              ? t("tools.videoCapabilities.inference.regenerateHelp")
+              : t("tools.videoCapabilities.inference.help")}
           </p>
+          <fieldset disabled={value.regenerate}>
           <div className="cw-capability-grid">
             <label className="cw-domain-field">
               {t("tools.videoCapabilities.inference.steps")}
@@ -347,6 +389,7 @@ export function VideoCapabilitiesEditor({
               />
             </label>
           </div>
+          </fieldset>
         </div>
       </fieldset>
     </div>
