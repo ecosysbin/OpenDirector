@@ -44,7 +44,8 @@ class GenerationProviders(VolcengineGeneration):
         if config and config.get('protocol') == 'minimax_video_v2':
             return self.minimax_video
         profile = input_rules(config)['profile'] if config else None
-        return {'vllm-omni-h3': self.vllm_omni, 'vllm-omni-image': self.vllm_omni_image,
+        return {'vllm-omni-h3': self.vllm_omni, 'vllm-omni-h3-refine': self.vllm_omni,
+                'vllm-omni-image': self.vllm_omni_image,
                 'vllm-omni-qwen-image': self.vllm_omni_image}.get(profile)
 
     def prepare_inputs(self, project_id, node, config, *, complete=True):

@@ -316,6 +316,14 @@ def test_refine_form_carries_the_draft_and_nothing_the_service_owns():
         assert owned not in fields
 
 
+def test_refine_config_routes_to_the_vllm_omni_adapter():
+    # A profile missing from the dispatch table falls to the generic /videos
+    # provider, which uploads the draft as a plain reference and the service
+    # rejects it as `ref2va` — the refine profile has to be mapped explicitly.
+    providers = GenerationProviders(None)
+    assert providers._profile_adapter(REFINE) is providers.vllm_omni
+
+
 def test_refine_form_requires_a_draft():
     task = {'videoMode': 'reference', 'parameters': {'duration': 5}}
     with pytest.raises(ProjectError, match='精修服务需要一段已完成的视频草稿'):
