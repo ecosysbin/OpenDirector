@@ -109,6 +109,8 @@ export const errors = {
   "errors.rules.firstFrameMissing": "首帧素材未连接或已丢失，请重新选择。",
   "errors.rules.continuationSource":
     "接续需要连接一段由当前 H3 服务生成的视频作为上一段。",
+  "errors.rules.continuationBoth":
+    "接续只能有一个来源：已指定「续接自」节点，请移除引用的视频素材。",
   "errors.rules.referenceLimit": "参考{kind}超过当前模型上限（{limit} 个）。",
   "errors.rules.referenceFileSize": "参考文件超过当前模型的大小限制",
   "errors.rules.referenceBudget": "参考总大小超过当前模型的请求预算",
@@ -198,12 +200,18 @@ export const errors = {
     "分辨率名称无效，例如 480P、720P、4K。",
   "errors.videoCapabilities.pixelPair": "像素宽高须同时填写或留空。",
   "errors.videoCapabilities.pixelRequired":
-    "该适配方式需要填写像素宽高（仅 H3 的 480P、768P 可按档位推算）。",
+    "该适配方式需要填写像素宽高（仅 H3 的 480P、768P、1080P 可按档位推算）。",
   "errors.videoCapabilities.pixelBounds":
     "横屏宽高须为 64–8192 的整数，宽不小于高，并符合像素对齐步长。",
   "errors.videoCapabilities.duplicateResolution": "分辨率不能重复。",
   "errors.videoCapabilities.defaultOutput":
     "默认分辨率和时长必须属于已声明的输出规格。",
+  "errors.videoCapabilities.inferenceRange":
+    "采样参数超出范围（步数 1–50、flow shift 0–60、guidance 0–20、LoRA 权重 0–1）。",
+  "errors.videoCapabilities.loraPair": "LoRA 名称与路径须同时填写。",
+  "errors.videoCapabilities.loraSteps": "采样步数与蒸馏 LoRA 的档位不一致。",
+  "errors.videoCapabilities.regenerateOwnsSchedule":
+    "精修服务的采样步数、flow shift 与 LoRA 由服务端固定，请清空采样参数后再勾选。",
   "errors.tools.saveBeforeSubmit": "请先保存工具编辑设置，再提交任务。",
   "errors.tools.taskCancelled": "任务已取消。",
   "errors.tools.taskIncomplete": "工具任务未完成。",

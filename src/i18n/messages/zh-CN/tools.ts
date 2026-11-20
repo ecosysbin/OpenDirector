@@ -394,7 +394,7 @@ export const tools = {
 
   "tools.videoCapabilities.custom": "自定义输出规格（关闭时跟随适配预设）",
   "tools.videoCapabilities.helpH3":
-    "H3 适配固定 4–15 秒、32 像素对齐；仅 480P、768P 可留空宽高，其余档位需填写。像素尺寸按横屏填写，竖屏交换宽高。",
+    "H3 适配固定 4–15 秒、32 像素对齐；仅 480P、768P、1080P 可留空宽高，其余档位需填写。像素尺寸按横屏填写，竖屏交换宽高。",
   "tools.videoCapabilities.helpDefault":
     "填写服务实际支持的规格；时长可写 4-10,15。像素尺寸按横屏填写，竖屏交换宽高，且须按像素对齐步长填写。",
   "tools.videoCapabilities.output.heading": "输出规格 {index}",
@@ -416,4 +416,23 @@ export const tools = {
   "tools.videoCapabilities.defaults.duration": "默认时长（秒）",
   "tools.videoCapabilities.defaults.durationAria": "默认时长",
   "tools.videoCapabilities.defaults.alignment": "像素对齐步长",
+  "tools.videoCapabilities.inference.heading": "采样参数（蒸馏 LoRA）",
+  "tools.videoCapabilities.inference.help":
+    "填写后每次生成都会带这些采样参数；LoRA 名称里的档位（如 8step）决定步数，步骤留空时按该档位推断，flow shift 留空按 6。",
+  "tools.videoCapabilities.inference.regenerate": "精修服务（Open-H3-Regenerate）",
+  "tools.videoCapabilities.inference.regenerateHelp":
+    "该服务不生成新片段，只把引用进来的一段 768P 片段精修成 2K；步数、flow shift 与采样器由服务端固定为 3 / 6 / euler，因此下面的采样参数无需填写，也不能配置 LoRA 或叠加超分。",
+  "tools.videoCapabilities.inference.steps": "采样步数",
+  "tools.videoCapabilities.inference.stepsPlaceholder": "留空按 LoRA 档位",
+  "tools.videoCapabilities.inference.flowShift": "flow shift",
+  "tools.videoCapabilities.inference.audioFlowShift": "音频 flow shift",
+  "tools.videoCapabilities.inference.guidanceScale": "guidance scale",
+  "tools.videoCapabilities.inference.loraName": "LoRA 名称",
+  "tools.videoCapabilities.inference.loraNamePlaceholder":
+    "例如 8step_v1.0_768p",
+  "tools.videoCapabilities.inference.loraPath": "LoRA 路径",
+  "tools.videoCapabilities.inference.loraPathPlaceholder":
+    "例如 /models/Turbo-LoRA/8step-v1.0",
+  "tools.videoCapabilities.inference.loraScale": "LoRA 权重",
+  "tools.videoCapabilities.inference.loraScalePlaceholder": "0–1，默认 1",
 } as const;

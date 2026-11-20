@@ -221,7 +221,14 @@ export function referenceIssue(
     return "source_type_unsupported";
   if (!nodePorts(b.type).target) return "target_type_unsupported";
   if (!referenceTypeAllowed(a, b.type)) return "source_type_unsupported";
-  if (!canSourceReference(a)) return "source_empty";
+  if (!canSourceReference(a)) {
+    // A continuation target follows a clip that may not exist yet. Two video
+    // nodes are wired as a plan first and the mode is chosen afterwards, so the
+    // empty source is accepted without asking what the target is set to.
+    const plannedContinuation =
+      a.type === "video" && b.type === "video" && !a.data.src;
+    if (!plannedContinuation) return "source_empty";
+  }
   if (isAssemblyTarget(b)) return assemblyIssue(a, b);
   if (b.data.mediaRole === "asset") return "target_material";
   const references = document.edges.filter(

@@ -1479,6 +1479,7 @@ export interface VideoCapabilitiesInput {
   readonly defaultResolution?: string;
   readonly defaultDuration?: number;
   readonly dimensionStep?: 1 | 2 | 8 | 16 | 32 | 64;
+  readonly inference?: VideoInferenceInput | null;
 }
 
 export interface VideoExecutionInput extends ContractInput {
@@ -1500,6 +1501,22 @@ export interface VideoGenerationSpecInput extends GenerationSpecBaseInput {
   readonly parameters?: VideoParametersInput;
 }
 
+export interface VideoInferenceInput {
+  readonly steps?: number | null;
+  readonly flowShift?: number | null;
+  readonly audioFlowShift?: number | null;
+  readonly guidanceScale?: number | null;
+  readonly lora?: VideoLoraInput | null;
+  readonly regenerate?: boolean;
+  readonly upscale?: VideoUpscaleInput | null;
+}
+
+export interface VideoLoraInput {
+  readonly name: string;
+  readonly path: string;
+  readonly scale?: number;
+}
+
 export interface VideoOutputInput {
   readonly resolution: string;
   readonly durations: ReadonlyArray<number>;
@@ -1513,6 +1530,16 @@ export interface VideoParametersInput extends ContractInput {
   readonly durationSeconds?: number | null;
   readonly aspectRatio?: string | null;
   readonly resolution?: string;
+  readonly upscale?: boolean;
+  readonly continuationOf?: string | null;
+  readonly autoContinue?: boolean;
+}
+
+export interface VideoUpscaleInput {
+  readonly modelPath?: string;
+  readonly scale?: number;
+  readonly nativeScale?: 2 | 4;
+  readonly tile?: number;
 }
 
 export interface ViewStateInput extends ContractInput {
@@ -3051,6 +3078,7 @@ export interface VideoCapabilities {
   readonly defaultResolution: string;
   readonly defaultDuration: number;
   readonly dimensionStep: 1 | 2 | 8 | 16 | 32 | 64;
+  readonly inference?: VideoInference | null;
 }
 
 export interface VideoExecution extends Contract {
@@ -3072,6 +3100,22 @@ export interface VideoGenerationSpec extends GenerationSpecBase {
   readonly parameters: VideoParameters;
 }
 
+export interface VideoInference {
+  readonly steps?: number | null;
+  readonly flowShift?: number | null;
+  readonly audioFlowShift?: number | null;
+  readonly guidanceScale?: number | null;
+  readonly lora?: VideoLora | null;
+  readonly regenerate?: boolean;
+  readonly upscale?: VideoUpscale | null;
+}
+
+export interface VideoLora {
+  readonly name: string;
+  readonly path: string;
+  readonly scale?: number;
+}
+
 export interface VideoOutput {
   readonly resolution: string;
   readonly durations: ReadonlyArray<number>;
@@ -3085,6 +3129,16 @@ export interface VideoParameters extends Contract {
   readonly durationSeconds: number | null;
   readonly aspectRatio: string | null;
   readonly resolution: string;
+  readonly upscale?: boolean;
+  readonly continuationOf?: string | null;
+  readonly autoContinue?: boolean;
+}
+
+export interface VideoUpscale {
+  readonly modelPath?: string;
+  readonly scale?: number;
+  readonly nativeScale?: 2 | 4;
+  readonly tile?: number;
 }
 
 export interface ViewState extends Contract {

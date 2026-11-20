@@ -6,7 +6,10 @@ import {
   type ModelOptions,
 } from "../backend/models.ts";
 import type { ModelConfig, VideoCapabilities } from "../backend/rules.ts";
-import { createVideoCapabilities } from "../backend/videoCapabilities.ts";
+import {
+  createVideoCapabilities,
+  createVideoInference,
+} from "../backend/videoCapabilities.ts";
 import {
   VideoCapabilitiesEditor,
   capabilityDraft,
@@ -91,6 +94,7 @@ export function ModelCapabilityCard({
             Number(next.defaultDuration),
             next.dimensionStep,
             nextAdapter,
+            createVideoInference(next),
           )
         : null;
       onChange({ videoCapabilities: capabilities, videoAdapter: nextAdapter });

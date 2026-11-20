@@ -29,6 +29,7 @@ from opendirector.integrations.generation_errors import checked, protocol_failur
 from opendirector.integrations.http_settings import MODEL_HTTP_HOOKS, auth_headers, trust_environment
 from opendirector.integrations.reference_inputs import data_uri, image_type, request_size
 from opendirector.integrations.volcengine import VolcengineGeneration, bounded, endpoint
+from opendirector.integrations.vllm_omni import inference_fields
 from opendirector.media import processing as media
 from opendirector.media.async_work import blocking
 
@@ -409,7 +410,8 @@ class VllmOmniVideo(ModelAdapter):
     capabilities = frozenset({'video.generate', 'video.first_frame', 'video.edit'})
     FPS = 24
     RATIOS = {'21:9': 21 / 9, '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1.0, '3:4': 3 / 4, '9:16': 9 / 16}
-    MAX_PIXELS = 768 * 1344
+    # 像素预算按新增的 1080P 档位（1920x1088）取值；超过它的请求会被缩到这个预算内。
+    MAX_PIXELS = 1920 * 1088
     MAX_SECONDS = 15
 
     @classmethod
@@ -492,16 +494,27 @@ class VllmOmniVideo(ModelAdapter):
             fields['seed'] = str(seed)
         if avoid:
             fields['negative_prompt'] = avoid
+        # Distilled weights (an 8-step LoRA, say) change step count and flow shift
+        # together; the service rejects a request that disagrees with them.
+        # 蒸馏权重（例如 8 步 LoRA）会把采样步数与 flow shift 绑在一起变化，
+        # 请求里只要与之不一致，服务就直接拒绝。这里统一从模型配置推导。
+        fields.update(inference_fields(config)[0])
         return fields
 
     async def video(self, config, request: VideoRequest, *, submitted=None) -> MediaResult:
         fields = self._fields(config, request.prompt, self.frames(request.seconds), request.seed, request.avoid)
+        # 服务把 aspect_ratio 当顶层字段读取，文生视频时必须显式给出（非法比例退回 16:9）。
+        fields['aspect_ratio'] = request.aspect_ratio if request.aspect_ratio in self.RATIOS else '16:9'
         files = []
         if request.first_frame is not None:
             extra = {'task': 'fl2va'}
             files.append(('input_reference', ('first_frame.png', request.first_frame, 'image/png')))
         else:
-            extra = {'task': 't2va', 'aspect_ratio': request.aspect_ratio if request.aspect_ratio in self.RATIOS else '16:9'}
+            extra = {'task': 't2va'}
+        # 音分支的 flow shift 只在配置了蒸馏采样参数时才下发，否则沿用服务默认。
+        inference, audio_flow_shift = inference_fields(config)
+        if inference:
+            extra['audio_flow_shift'] = audio_flow_shift
         fields['extra_params'] = json.dumps(extra)
         return await self._job(config, fields, files, submitted)
 
@@ -517,8 +530,11 @@ class VllmOmniVideo(ModelAdapter):
         width, height = self.canvas(request.width, request.height)
         source = await blocking(self._conformed, request.source, width, height)
         fields = self._fields(config, request.prompt, frames, avoid=request.avoid)
-        fields.update(size=f'{width}x{height}',
-                      extra_params=json.dumps({'task': 't2va', 'aspect_ratio': self.ratio(width, height), 'duration': frames / self.FPS}))
+        # 带遮罩的精修请求同样要携带蒸馏采样参数，否则服务会拒绝已加载的权重。
+        inference, audio_flow_shift = inference_fields(config)
+        fields.update(size=f'{width}x{height}', aspect_ratio=self.ratio(width, height),
+                      extra_params=json.dumps({'task': 't2va', 'duration': frames / self.FPS,
+                                               **({'audio_flow_shift': audio_flow_shift} if inference else {})}))
         files = [('source_video', ('source.mp4', source, 'video/mp4')),
                  ('video_noise_mask', ('video-mask.json', json.dumps(self.picture_mask(request.picture, frames)).encode(), 'application/json')),
                  ('audio_noise_mask', ('audio-mask.json', json.dumps(self.sound_mask(request.sound, frames)).encode(), 'application/json'))]

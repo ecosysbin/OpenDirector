@@ -222,11 +222,30 @@ export function NodeComposer({
   const updateSettings = (patch: Partial<ComposerSettings>) => {
     const next = changeGenerationSettings(settings, patch);
     const target = backendModel(next, backendModels);
-    onUpdate({
-      settings: target
-        ? serviceGenerationSettings(next, target, incomingNodes)
-        : next,
-    });
+    // A continuation whose source is still an empty node keeps that node id:
+    // the run then resolves the source clip's finished job instead of a file.
+    const planned =
+      next.mode === "video" && next.videoMode === "continuation"
+        ? incomingNodes.find(
+            (node) => node.type === "video" && !node.data.src,
+          )
+        : undefined;
+    // Another video mode keeps no continuation source: a leftover id would be
+    // sent as a continuation hint for a clip that is not one.
+    const plannedSource =
+      next.videoMode === "continuation" ? planned?.id : undefined;
+    // Only rebuild when the source really changed: an unchanged object would
+    // queue a pointless canvas write and collide with the next one.
+    const resolved =
+      next.continuationOf === plannedSource
+        ? next
+        : changeGenerationSettings(next, { continuationOf: plannedSource });
+    const service = target
+      ? serviceGenerationSettings(resolved, target, incomingNodes)
+      : resolved;
+    // The chain switch is a canvas-side choice: keep it whatever the service
+    // settings reshape, otherwise the tick never survives the next update.
+    onUpdate({ settings: { ...service, autoContinue: next.autoContinue } });
   };
   const togglePanel = (next: Panel, anchor: HTMLElement) => {
     panelAnchor.current = anchor;
@@ -581,6 +600,36 @@ export function NodeComposer({
                 ))}
               </select>
             )}
+            {settings.mode === "video" && (
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 12,
+                    width: "fit-content",
+                    flex: "0 0 auto",
+                    margin: 0,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    style={{
+                      width: 12,
+                      height: 12,
+                      margin: 0,
+                      flex: "0 0 auto",
+                    }}
+                    checked={Boolean(settings.autoContinue)}
+                    disabled={running}
+                    onChange={(event) =>
+                      updateSettings({ autoContinue: event.target.checked })
+                    }
+                  />
+                  {t("generation.autoContinue")}
+                </label>
+              )}
             {followsReference && (
               <select
                 aria-label={t("generation.referenceMode")}
@@ -947,6 +996,22 @@ export function NodeComposer({
                 />
               </label>
             )}
+          {mode === "video" && config?.protocol === "vllm_omni" && (
+            <label className="cw-audio-toggle">
+              <span>
+                <CanvasIcon name="sparkle" size={16} />
+                {t("generation.field.upscale")}
+              </span>
+              <input
+                type="checkbox"
+                checked={settings.upscale === true}
+                disabled={running}
+                onChange={(event) =>
+                  updateSettings({ upscale: event.target.checked })
+                }
+              />
+            </label>
+          )}
         </ComposerPopover>
       )}
 

@@ -542,3 +542,17 @@ def test_audio_generation_options_match_shared_validation(protocol, allowed):
     legacy = config.inputRules.model_dump(mode='json', exclude={'generateAudioOptions'})
     from opendirector.domain.creation.models import InputRules
     assert InputRules.model_validate(legacy).model_dump(mode='json') == legacy
+
+
+def test_video_upscale_stays_out_of_saved_inputs_until_a_task_asks_for_it():
+    """Stored jobs predate the option; digest() serializes defaults, so a written
+    `upscale: false` would re-key every historical job fingerprint and make
+    existing projects unreadable."""
+    from opendirector.domain.creation.generation import VideoParameters
+    from opendirector.domain.video_capabilities import VideoInference
+    legacy = dict(generateAudio=True, videoMode='first_frame', durationSeconds=8.0,
+        aspectRatio='16:9', resolution='auto')
+    assert VideoParameters.model_validate(legacy).model_dump(mode='json') == legacy
+    asked = VideoParameters.model_validate({**legacy, 'upscale': True}).model_dump(mode='json')
+    assert asked['upscale'] is True
+    assert 'upscale' not in VideoInference(steps=8).model_dump(mode='json')

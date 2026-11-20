@@ -678,6 +678,85 @@ export function useWorkspaceGeneration(rt: WorkspaceRuntime) {
     importAbort.current?.abort();
     resultBinding.current = null;
   };
+  // A finished clip hands the chain on by itself: the clip that opts in asks for
+  // its wired continuation node to run as soon as it lands. The first segment can
+  // therefore start the whole chain, and an unmarked clip simply stops there.
+  const chainedJobs = useRef(new Set<string>());
+  useEffect(() => {
+    // One clip at a time: nothing new starts while a job is still in flight.
+    if (jobs.some((job) => job.status === "running")) return;
+    for (const job of jobs) {
+      if (job.status !== "succeeded") continue;
+      const key = job.id;
+      if (chainedJobs.current.has(key)) continue;
+      // Only the newest finished clip hands the chain on, so reloading a canvas
+      // that holds several finished clips cannot fan out several follow-ups.
+      const newest = jobs
+        .filter((candidate) => candidate.status === "succeeded")
+        .reduce<Job | undefined>(
+          (best, candidate) =>
+            !best || (candidate.createdAt ?? 0) > (best.createdAt ?? 0)
+              ? candidate
+              : best,
+          undefined,
+        );
+      if (newest?.id !== key) continue;
+      // A job restored after a reload has no in-memory origin; the node it
+      // belongs to survives in originItemId, which the server keeps.
+      const nodeId = job.resultSource?.nodeId ?? job.nodeId;
+      if (!nodeId) continue;
+      const nodes = historyRef.current.present.nodes;
+      const source = nodes.find((node) => node.id === nodeId);
+      if (!source?.data.settings?.autoContinue) continue;
+      // The line the user drew is the intent; the settings field is only
+      // written when the composer happens to save, so it can stay empty.
+      const wired = historyRef.current.present.edges
+        .filter((edge) => edge.source === nodeId)
+        .map((edge) => nodes.find((node) => node.id === edge.target));
+      const next = wired.find(
+        (node): node is CanvasNode =>
+          node?.type === "video" && (node.data.prompt ?? "").trim().length > 0,
+      );
+      const outgoing = historyRef.current.present.edges
+        .filter((edge) => edge.source === nodeId)
+        .map((edge) => edge.target);
+      console.info("[chain]", {
+        job: key,
+        nodeId,
+        auto: source?.data.settings?.autoContinue,
+        outgoing,
+        wired: wired.map((candidate) => candidate?.id ?? "missing"),
+        next: next?.id ?? "none",
+      });
+      // The browser here has no reachable console, so the decision also goes
+      // out as a request the server log records verbatim.
+      void fetch(
+        `/api/chain-probe?node=${nodeId}&auto=${source?.data.settings?.autoContinue === true}` +
+          `&out=${outgoing.join(",")}&wired=${wired.map((candidate) => candidate?.id ?? "missing").join(",")}` +
+          `&next=${next?.id ?? "none"}`,
+      ).catch(() => undefined);
+      if (!next) continue;
+      if (
+        jobs.some(
+          (candidate) =>
+            candidate.status === "running" &&
+            (candidate.resultSource?.nodeId ?? candidate.nodeId) === next.id,
+        )
+      )
+        continue;
+      chainedJobs.current.add(key);
+      const edges = historyRef.current.present.edges.filter(
+        (edge) => edge.target === next.id,
+      );
+      const incoming = edges
+        .map((edge) => nodes.find((node) => node.id === edge.source))
+        .filter((node): node is CanvasNode => Boolean(node));
+      // The finished clip is still being settled on the server; writing the next
+      // one immediately races that commit and surfaces as a version conflict.
+      window.setTimeout(() => runServiceGeneration(next, incoming), 4000);
+    }
+  }, [jobs]);
+
   rt.updateJob = updateJob;
   rt.refreshRunning = refreshRunning;
   rt.revealResults = revealResults;

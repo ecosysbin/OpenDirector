@@ -13896,6 +13896,18 @@
             ],
             "title": "Dimensionstep",
             "type": "integer"
+          },
+          "inference": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoInference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Engine sampling settings applied to every request of this model."
           }
         },
         "required": [
@@ -14174,6 +14186,138 @@
         "title": "VideoGenerationSpec",
         "type": "object"
       },
+      "VideoInference": {
+        "additionalProperties": false,
+        "description": "Sampling settings owned by the deployed engine, not by a single request.",
+        "properties": {
+          "steps": {
+            "anyOf": [
+              {
+                "maximum": 50,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Denoising steps sent as num_inference_steps.",
+            "title": "Steps"
+          },
+          "flowShift": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flow shift the served weights were trained with.",
+            "title": "Flowshift"
+          },
+          "audioFlowShift": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flow shift for the sound branch.",
+            "title": "Audioflowshift"
+          },
+          "guidanceScale": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Guidance scale sent as guidance_scale.",
+            "title": "Guidancescale"
+          },
+          "lora": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoLora"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Distilled acceleration weights, e.g. an 8-step Turbo LoRA."
+          },
+          "regenerate": {
+            "default": false,
+            "description": "The service refines an uploaded draft into 2K instead of generating a clip.",
+            "title": "Regenerate",
+            "type": "boolean"
+          },
+          "upscale": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoUpscale"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Super resolution weights used when a task asks for upscaling."
+          }
+        },
+        "title": "VideoInference",
+        "type": "object"
+      },
+      "VideoLora": {
+        "additionalProperties": false,
+        "description": "A distilled LoRA the engine already serves, described exactly as the API receives it.",
+        "properties": {
+          "name": {
+            "description": "LoRA identifier the service reports.",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "description": "LoRA directory or file as the service sees it.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "scale": {
+            "default": 1.0,
+            "description": "Adapter weight multiplier.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Scale",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ],
+        "title": "VideoLora",
+        "type": "object"
+      },
       "VideoOutput": {
         "additionalProperties": false,
         "properties": {
@@ -14288,9 +14432,75 @@
             "pattern": "^(?:auto|[A-Z0-9][A-Z0-9_.-]{0,23})$",
             "title": "Resolution",
             "type": "string"
+          },
+          "upscale": {
+            "default": false,
+            "description": "Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.",
+            "title": "Upscale",
+            "type": "boolean"
+          },
+          "continuationOf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas node whose finished clip this clip continues.",
+            "title": "Continuationof"
+          },
+          "autoContinue": {
+            "default": false,
+            "description": "Run the wired continuation clip once this clip finishes.",
+            "title": "Autocontinue",
+            "type": "boolean"
           }
         },
         "title": "VideoParameters",
+        "type": "object"
+      },
+      "VideoUpscale": {
+        "additionalProperties": false,
+        "description": "Super resolution weights and knobs the service applies after sampling.\n\nWhether a clip is upscaled is a per-request choice (the video node's upscale\nswitch); this only describes the weights and how to run them, so a draft can\nstay at the generated size while a delivery run doubles it.",
+        "properties": {
+          "modelPath": {
+            "default": "",
+            "description": "Weights as the service sees it; empty uses the service default.",
+            "maxLength": 1024,
+            "title": "Modelpath",
+            "type": "string"
+          },
+          "scale": {
+            "default": 2.0,
+            "description": "Delivery factor applied to the generated frame.",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Scale",
+            "type": "number"
+          },
+          "nativeScale": {
+            "default": 4,
+            "description": "Native factor of the weights (x4plus=4, x2plus=2).",
+            "enum": [
+              2,
+              4
+            ],
+            "title": "Nativescale",
+            "type": "integer"
+          },
+          "tile": {
+            "default": 512,
+            "description": "Tile size for tiled upscaling; 512 keeps peak VRAM near 1.6 GB at 1344x768 while halving the per-frame calls of 256.",
+            "maximum": 1024,
+            "minimum": 64,
+            "title": "Tile",
+            "type": "integer"
+          }
+        },
+        "title": "VideoUpscale",
         "type": "object"
       },
       "ViewState": {
@@ -29492,6 +29702,18 @@
             ],
             "title": "Dimensionstep",
             "type": "integer"
+          },
+          "inference": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoInference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Engine sampling settings applied to every request of this model."
           }
         },
         "required": [
@@ -29790,6 +30012,138 @@
         "title": "VideoGenerationSpec",
         "type": "object"
       },
+      "VideoInference": {
+        "additionalProperties": false,
+        "description": "Sampling settings owned by the deployed engine, not by a single request.",
+        "properties": {
+          "steps": {
+            "anyOf": [
+              {
+                "maximum": 50,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Denoising steps sent as num_inference_steps.",
+            "title": "Steps"
+          },
+          "flowShift": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flow shift the served weights were trained with.",
+            "title": "Flowshift"
+          },
+          "audioFlowShift": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Flow shift for the sound branch.",
+            "title": "Audioflowshift"
+          },
+          "guidanceScale": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Guidance scale sent as guidance_scale.",
+            "title": "Guidancescale"
+          },
+          "lora": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoLora"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Distilled acceleration weights, e.g. an 8-step Turbo LoRA."
+          },
+          "regenerate": {
+            "default": false,
+            "description": "The service refines an uploaded draft into 2K instead of generating a clip.",
+            "title": "Regenerate",
+            "type": "boolean"
+          },
+          "upscale": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/VideoUpscale"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Super resolution weights used when a task asks for upscaling."
+          }
+        },
+        "title": "VideoInference",
+        "type": "object"
+      },
+      "VideoLora": {
+        "additionalProperties": false,
+        "description": "A distilled LoRA the engine already serves, described exactly as the API receives it.",
+        "properties": {
+          "name": {
+            "description": "LoRA identifier the service reports.",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "description": "LoRA directory or file as the service sees it.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "scale": {
+            "default": 1.0,
+            "description": "Adapter weight multiplier.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Scale",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ],
+        "title": "VideoLora",
+        "type": "object"
+      },
       "VideoOutput": {
         "additionalProperties": false,
         "properties": {
@@ -29904,6 +30258,31 @@
             "pattern": "^(?:auto|[A-Z0-9][A-Z0-9_.-]{0,23})$",
             "title": "Resolution",
             "type": "string"
+          },
+          "upscale": {
+            "default": false,
+            "description": "Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.",
+            "title": "Upscale",
+            "type": "boolean"
+          },
+          "continuationOf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Canvas node whose finished clip this clip continues.",
+            "title": "Continuationof"
+          },
+          "autoContinue": {
+            "default": false,
+            "description": "Run the wired continuation clip once this clip finishes.",
+            "title": "Autocontinue",
+            "type": "boolean"
           }
         },
         "required": [
@@ -29914,6 +30293,47 @@
           "resolution"
         ],
         "title": "VideoParameters",
+        "type": "object"
+      },
+      "VideoUpscale": {
+        "additionalProperties": false,
+        "description": "Super resolution weights and knobs the service applies after sampling.\n\nWhether a clip is upscaled is a per-request choice (the video node's upscale\nswitch); this only describes the weights and how to run them, so a draft can\nstay at the generated size while a delivery run doubles it.",
+        "properties": {
+          "modelPath": {
+            "default": "",
+            "description": "Weights as the service sees it; empty uses the service default.",
+            "maxLength": 1024,
+            "title": "Modelpath",
+            "type": "string"
+          },
+          "scale": {
+            "default": 2.0,
+            "description": "Delivery factor applied to the generated frame.",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Scale",
+            "type": "number"
+          },
+          "nativeScale": {
+            "default": 4,
+            "description": "Native factor of the weights (x4plus=4, x2plus=2).",
+            "enum": [
+              2,
+              4
+            ],
+            "title": "Nativescale",
+            "type": "integer"
+          },
+          "tile": {
+            "default": 512,
+            "description": "Tile size for tiled upscaling; 512 keeps peak VRAM near 1.6 GB at 1344x768 while halving the per-frame calls of 256.",
+            "maximum": 1024,
+            "minimum": 64,
+            "title": "Tile",
+            "type": "integer"
+          }
+        },
+        "title": "VideoUpscale",
         "type": "object"
       },
       "ViewState": {

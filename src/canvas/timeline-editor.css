@@ -93,18 +93,30 @@
 .cw-timeline-top {
   display: grid;
   grid-template-columns: 210px minmax(0, 1fr) 215px;
+  /* Pin the row to the panel height so the scrolling columns can actually scroll. */
+  grid-template-rows: minmax(0, 1fr);
   gap: 0;
   min-height: 330px;
 }
 .cw-timeline-library {
   min-width: 0;
+  min-height: 0;
   padding: 19px 16px;
   background: var(--cw-timeline-surface);
-  /* Keep panel scrolling without the global dark scrollbar track at its edge. */
-  scrollbar-width: none;
+  /* The text section alone can exceed the panel height, so the library must scroll. */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cw-timeline-muted) transparent;
 }
 .cw-timeline-library::-webkit-scrollbar {
-  display: none;
+  width: 6px;
+}
+.cw-timeline-library::-webkit-scrollbar-thumb {
+  background: var(--cw-timeline-muted);
+  border-radius: 3px;
+}
+.cw-timeline-library::-webkit-scrollbar-track {
+  background: transparent;
 }
 .cw-timeline-library .cw-domain-resource-list {
   max-height: 240px;
@@ -210,9 +222,13 @@
 }
 .cw-timeline-inspector {
   min-width: 0;
+  min-height: 0;
   padding: 20px 16px;
   border-left: 1px solid var(--cw-timeline-border);
   background: var(--cw-timeline-surface);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cw-timeline-muted) transparent;
 }
 .cw-timeline-inspector > strong {
   display: block;

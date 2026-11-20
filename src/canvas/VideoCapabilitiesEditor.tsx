@@ -2,10 +2,11 @@ import type { VideoAdapter, VideoCapabilities } from "../backend/rules.ts";
 import { useT } from "../i18n/I18nProvider.tsx";
 import {
   videoOutputDrafts,
+  type VideoInferenceDraft,
   type VideoOutputDraft,
 } from "../backend/videoCapabilities.ts";
 
-export interface VideoCapabilityDraft {
+export interface VideoCapabilityDraft extends VideoInferenceDraft {
   custom: boolean;
   outputs: VideoOutputDraft[];
   defaultResolution: string;
@@ -17,12 +18,23 @@ export function capabilityDraft(
   caps: VideoCapabilities | null | undefined,
   custom = false,
 ): VideoCapabilityDraft {
+  const inference = caps?.inference;
+  const text = (value: number | undefined) =>
+    value === undefined ? "" : String(value);
   return {
     custom,
     outputs: videoOutputDrafts(caps),
     defaultResolution: caps?.defaultResolution ?? "auto",
     defaultDuration: String(caps?.defaultDuration ?? 5),
     dimensionStep: caps?.dimensionStep ?? 2,
+    steps: text(inference?.steps),
+    flowShift: text(inference?.flowShift),
+    audioFlowShift: text(inference?.audioFlowShift),
+    guidanceScale: text(inference?.guidanceScale),
+    loraName: inference?.lora?.name ?? "",
+    loraPath: inference?.lora?.path ?? "",
+    loraScale: text(inference?.lora?.scale),
+    regenerate: inference?.regenerate ?? false,
   };
 }
 
@@ -228,6 +240,157 @@ export function VideoCapabilitiesEditor({
               ))}
             </select>
           </label>
+        </div>
+        <div className="cw-output-spec">
+          <div className="cw-output-spec-heading">
+            <strong>{t("tools.videoCapabilities.inference.heading")}</strong>
+          </div>
+          <label className="cw-domain-checkbox">
+            <input
+              type="checkbox"
+              checked={value.regenerate ?? false}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                // The service owns steps, shift, sampler and upscale, so a
+                // previously filled sampling block would only block the save.
+                // Its output menu is 2K alone: the delivered frame is the
+                // refined draft, not a declared tier.
+                update(
+                  checked
+                    ? {
+                        custom: true,
+                        regenerate: true,
+                        steps: "",
+                        flowShift: "",
+                        audioFlowShift: "",
+                        guidanceScale: "",
+                        loraName: "",
+                        loraPath: "",
+                        loraScale: "",
+                        outputs: [
+                          {
+                            resolution: "2K",
+                            seconds: "4-15",
+                            width: "2560",
+                            height: "1440",
+                          },
+                        ],
+                        defaultResolution: "2K",
+                        dimensionStep: 32,
+                      }
+                    : { regenerate: false },
+                );
+              }}
+            />
+            {t("tools.videoCapabilities.inference.regenerate")}
+          </label>
+          <p className="cw-capability-help">
+            {value.regenerate
+              ? t("tools.videoCapabilities.inference.regenerateHelp")
+              : t("tools.videoCapabilities.inference.help")}
+          </p>
+          <fieldset disabled={value.regenerate}>
+          <div className="cw-capability-grid">
+            <label className="cw-domain-field">
+              {t("tools.videoCapabilities.inference.steps")}
+              <input
+                aria-label={t("tools.videoCapabilities.inference.steps")}
+                type="number"
+                min={1}
+                max={50}
+                step={1}
+                value={value.steps}
+                placeholder={t(
+                  "tools.videoCapabilities.inference.stepsPlaceholder",
+                )}
+                onChange={(event) => update({ steps: event.target.value })}
+              />
+            </label>
+            <label className="cw-domain-field">
+              {t("tools.videoCapabilities.inference.flowShift")}
+              <input
+                aria-label={t("tools.videoCapabilities.inference.flowShift")}
+                type="number"
+                min={0}
+                max={60}
+                step={0.1}
+                value={value.flowShift}
+                onChange={(event) => update({ flowShift: event.target.value })}
+              />
+            </label>
+            <label className="cw-domain-field">
+              {t("tools.videoCapabilities.inference.audioFlowShift")}
+              <input
+                aria-label={t(
+                  "tools.videoCapabilities.inference.audioFlowShift",
+                )}
+                type="number"
+                min={0}
+                max={60}
+                step={0.1}
+                value={value.audioFlowShift}
+                onChange={(event) =>
+                  update({ audioFlowShift: event.target.value })
+                }
+              />
+            </label>
+            <label className="cw-domain-field">
+              {t("tools.videoCapabilities.inference.guidanceScale")}
+              <input
+                aria-label={t(
+                  "tools.videoCapabilities.inference.guidanceScale",
+                )}
+                type="number"
+                min={0}
+                max={20}
+                step={0.1}
+                value={value.guidanceScale}
+                onChange={(event) =>
+                  update({ guidanceScale: event.target.value })
+                }
+              />
+            </label>
+            <label className="cw-domain-field">
+              {t("tools.videoCapabilities.inference.loraName")}
+              <input
+                aria-label={t("tools.videoCapabilities.inference.loraName")}
+                maxLength={64}
+                value={value.loraName}
+                placeholder={t(
+                  "tools.videoCapabilities.inference.loraNamePlaceholder",
+                )}
+                onChange={(event) => update({ loraName: event.target.value })}
+              />
+            </label>
+            <label className="cw-domain-field">
+              {t("tools.videoCapabilities.inference.loraPath")}
+              <input
+                aria-label={t("tools.videoCapabilities.inference.loraPath")}
+                maxLength={260}
+                value={value.loraPath}
+                placeholder={t(
+                  "tools.videoCapabilities.inference.loraPathPlaceholder",
+                )}
+                onChange={(event) => update({ loraPath: event.target.value })}
+              />
+            </label>
+            <label className="cw-domain-field">
+              {t("tools.videoCapabilities.inference.loraScale")}
+              <input
+                aria-label={t("tools.videoCapabilities.inference.loraScale")}
+                type="number"
+                min={0}
+                max={1}
+                step={0.1}
+                value={value.loraScale}
+                placeholder={t(
+                  "tools.videoCapabilities.inference.loraScalePlaceholder",
+                )}
+                onChange={(event) => update({ loraScale: event.target.value })}
+              />
+            </label>
+          </div>
+          </fieldset>
         </div>
       </fieldset>
     </div>

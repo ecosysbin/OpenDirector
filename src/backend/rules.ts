@@ -20,6 +20,20 @@ import type { MessageKey } from "../i18n/types.ts";
 export type ModelKind = "agent" | "image" | "video" | "audio" | "vision";
 export type BackendVideoMode = "first_frame" | "reference" | "continuation";
 export type VideoAdapter = "auto" | "fasth3" | "minimax_h3" | "standard";
+export interface VideoLoRA {
+  name: string;
+  path: string;
+  scale?: number;
+}
+export interface VideoInference {
+  steps?: number;
+  flowShift?: number;
+  audioFlowShift?: number;
+  guidanceScale?: number;
+  lora?: VideoLoRA;
+  /** The service refines an uploaded draft into 2K and owns steps, shift and sampler. */
+  regenerate?: boolean;
+}
 export interface VideoCapabilities {
   outputs: {
     resolution: string;
@@ -30,6 +44,7 @@ export interface VideoCapabilities {
   defaultResolution: string;
   defaultDuration: number;
   dimensionStep: 1 | 2 | 8 | 16 | 32 | 64;
+  inference?: VideoInference;
 }
 
 export interface InputRules {
@@ -209,6 +224,16 @@ export function backendReferenceIssue(
 ): string | null {
   const kind = node.data.kind;
   const rules = config.inputRules;
+  // A declared continuation source may be an empty node: only its finished job
+  // id is needed, so nothing is read from it and no file is uploaded.
+  if (
+    settings.mode === "video" &&
+    settings.videoMode === "continuation" &&
+    kind === "video" &&
+    !node.data.src &&
+    settings.continuationOf === node.id
+  )
+    return null;
   if (
     settings.mode === "video" &&
     settings.videoMode === "first-last" &&
@@ -261,6 +286,17 @@ export function backendReferences(
 ): BackendReference[] {
   const usable = incoming
     .filter((node) => !backendReferenceIssue(node, settings, config))
+    // A planned continuation source carries no file: its job id is read from the
+    // project instead, so it never joins the upload list.
+    .filter(
+      (node) =>
+        !(
+          settings.mode === "video" &&
+          settings.videoMode === "continuation" &&
+          node.type === "video" &&
+          !node.data.src
+        ),
+    )
     .flatMap((node) =>
       node.type === "subject"
         ? subjectReferenceNodes(node).filter(
@@ -636,8 +672,12 @@ export function backendBlocker(
       )
         return tNow("errors.rules.firstFrameMissing");
     }
+    // The edge is the only continuation source. A remembered node id is just the
+    // placeholder while that node has no clip yet, so both together are not two
+    // sources and must not block the run.
     if (
       settings.videoMode === "continuation" &&
+      !settings.continuationOf &&
       references.filter((item) => item.role === "continuation").length !== 1
     )
       return tNow("errors.rules.continuationSource");

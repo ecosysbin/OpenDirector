@@ -426,7 +426,7 @@ export const tools = {
   "tools.videoCapabilities.custom":
     "Custom output specs (off follows the adapter preset)",
   "tools.videoCapabilities.helpH3":
-    "The H3 adapter is fixed to 4–15 seconds and 32-pixel alignment; only 480P and 768P may leave width and height empty, other tiers require them. Pixel sizes are entered for landscape; swap width and height for portrait.",
+    "The H3 adapter is fixed to 4–15 seconds and 32-pixel alignment; only 480P, 768P and 1080P may leave width and height empty, other tiers require them. Pixel sizes are entered for landscape; swap width and height for portrait.",
   "tools.videoCapabilities.helpDefault":
     "Enter the specs the service actually supports; durations can be written as 4-10,15. Pixel sizes are entered for landscape, swap width and height for portrait, and must follow the pixel alignment step.",
   "tools.videoCapabilities.output.heading": "Output spec {index}",
@@ -448,4 +448,25 @@ export const tools = {
   "tools.videoCapabilities.defaults.duration": "Default duration (s)",
   "tools.videoCapabilities.defaults.durationAria": "Default duration",
   "tools.videoCapabilities.defaults.alignment": "Pixel alignment step",
+  "tools.videoCapabilities.inference.heading": "Sampling settings (distilled LoRA)",
+  "tools.videoCapabilities.inference.help":
+    "Every generation carries these settings once filled in. The step count in the LoRA name (e.g. 8step) decides the steps when left blank, and flow shift falls back to 6.",
+  "tools.videoCapabilities.inference.regenerate":
+    "Refine service (Open-H3-Regenerate)",
+  "tools.videoCapabilities.inference.regenerateHelp":
+    "This service never draws a new clip: it refines one referenced 768P clip into 2K. Steps, flow shift and sampler are fixed server-side at 3 / 6 / euler, so the sampling fields below are not sent and neither a LoRA nor an extra upscale may be configured.",
+  "tools.videoCapabilities.inference.steps": "Sampling steps",
+  "tools.videoCapabilities.inference.stepsPlaceholder":
+    "Blank uses the LoRA tier",
+  "tools.videoCapabilities.inference.flowShift": "Flow shift",
+  "tools.videoCapabilities.inference.audioFlowShift": "Audio flow shift",
+  "tools.videoCapabilities.inference.guidanceScale": "Guidance scale",
+  "tools.videoCapabilities.inference.loraName": "LoRA name",
+  "tools.videoCapabilities.inference.loraNamePlaceholder":
+    "e.g. 8step_v1.0_768p",
+  "tools.videoCapabilities.inference.loraPath": "LoRA path",
+  "tools.videoCapabilities.inference.loraPathPlaceholder":
+    "e.g. /models/Turbo-LoRA/8step-v1.0",
+  "tools.videoCapabilities.inference.loraScale": "LoRA scale",
+  "tools.videoCapabilities.inference.loraScalePlaceholder": "0–1, default 1",
 } as const;

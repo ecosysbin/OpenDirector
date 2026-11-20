@@ -58,6 +58,35 @@ class ProviderMedia:
     def __init__(self, runtime):
         self.runtime = runtime
 
+    def latest_clip_for_node(self, project_id, node_id, config):
+        """Job ID and delivered pixels of a node's newest finished clip on this server.
+
+        Declared continuation is stored as a node ID, so the job ID only exists
+        once the source clip has actually run; an unfinished source returns None
+        and the caller reports it instead of falling back to a plain clip.
+
+        返回某节点在这个服务上最新一条已完成片段的（任务 ID、交付宽高、是否超分）。
+
+        声明式接续存的是节点 ID，因此任务 ID 只有等源片段真的跑完才存在；
+        源片段还没完成时返回 None，由调用方明确报错，而不是退化成普通片段。
+        """
+        snapshot = self.runtime.projects.snapshot(project_id)
+        assets = {asset.id: asset for asset in snapshot.assets}
+        for job in reversed(list(snapshot.jobs)):
+            spec, model = job.inputSnapshot.spec, job.inputSnapshot.model
+            if str(job.originItemId or spec.id) != str(node_id) or spec.kind != 'video':
+                continue
+            if job.status != 'succeeded' or not job.externalTaskId or not job.asset:
+                continue
+            if (model.url.rstrip('/') != config['url'].rstrip('/') or model.modelId != config['modelId']
+                    or (model.protocol and config.get('protocol') and model.protocol != config['protocol'])):
+                continue
+            asset = assets.get(job.asset.assetId)
+            meta = getattr(asset, 'metadata', None)
+            return (job.externalTaskId, getattr(meta, 'width', None), getattr(meta, 'height', None),
+                    bool(getattr(spec.parameters, 'upscale', False)))
+        return None
+
     def asset(self, project_id, asset_id):
         stream, asset = self.runtime.assets.open_media(project_id, asset_id)
         with stream:
@@ -201,9 +230,13 @@ class CreationGeneration(GenerationRuntime):
             if intent.get('aspectRatio'):
                 params['ratio'] = intent['aspectRatio']
             output = dict(intent)
-            if output.get('resolution') == 'auto' and output.get('aspectRatio') and rules['profile'] in {'standard-video', 'fasth3-omni', 'vllm-omni-h3'}:
-                if node.get('videoMode') == 'continuation':
-                    raise ProjectError('接续沿用上一段视频的画幅，请将比例设为自动。', 422)
+            # A continuation follows the source clip's frame, so a chosen ratio is
+            # ignored rather than rejected; the form derives it from the source size.
+            # 接续沿用源片段的画幅，因此选中的比例是被忽略而不是被拒绝；
+            # 画幅由表单根据源尺寸自行推导。
+            if (output.get('resolution') == 'auto' and output.get('aspectRatio')
+                    and node.get('videoMode') != 'continuation'
+                    and rules['profile'] in {'standard-video', 'fasth3-omni', 'vllm-omni-h3'}):
                 caps = rules.get('videoCapabilities') or {}
                 choices = [item for item in caps.get('outputs', []) if seconds is None or seconds in item['durations']]
                 if not choices:

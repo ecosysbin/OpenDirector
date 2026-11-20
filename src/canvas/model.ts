@@ -74,6 +74,12 @@ export interface GenerationSettings {
   /** Music with a reference recording: cap the length at the recording's own (unset follows it). */
   durationFromReference?: boolean;
   imagePreset?: "none" | "product-views";
+  /** H3: apply the service's super resolution, so the clip is delivered at a multiple of the tier. */
+  upscale?: boolean;
+  /** H3: node id this clip continues; resolved to a finished job only when it runs. */
+  continuationOf?: string;
+  /** Keep handing the chain on: run the next wired clip once this one lands. */
+  autoContinue?: boolean;
   /** A model configured in the local API; catalog models leave it unset. */
   modelConfigId?: string;
 }

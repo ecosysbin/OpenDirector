@@ -12,7 +12,7 @@ import httpx
 
 from opendirector.integrations.http_settings import MODEL_HTTP_HOOKS, trust_environment
 
-from opendirector.domain.assets import MAX_ASSET_BYTES
+from opendirector.domain.assets import MAX_ASSET_BYTES, MAX_VIDEO_BYTES, size_label
 from opendirector.domain.projects import ProjectError
 from opendirector.domain.generation import GenerationError
 from opendirector.integrations.chat_completions import ChatCompletions, chat_payload
@@ -25,13 +25,33 @@ def endpoint(base, suffix):
     return base.rstrip("/") if base.rstrip("/").endswith(suffix) else base.rstrip("/") + suffix
 
 
-async def bounded(response, *, stage, secrets=(), limit=MAX_ASSET_BYTES):
+def _body_limit(response):
+    """A returned clip is larger than any picture; never bound it like one.
+
+    按响应类型决定体积上限。
+
+    返回的视频片段远大于任何图片，不能沿用图片那一档：优先看 content-type，
+    拿不到时再看 URL 后缀，其余一律回到 50 MB。
+    """
+    media = (response.headers.get('content-type') or '').split(';')[0].strip().lower()
+    if media.startswith('video/'):
+        return MAX_VIDEO_BYTES
+    try:
+        path = urlsplit(str(response.request.url)).path.lower()
+    except (RuntimeError, AttributeError):
+        path = ''
+    return MAX_VIDEO_BYTES if path.endswith(('.mp4', '.mov', '.webm', '.mkv')) else MAX_ASSET_BYTES
+
+
+async def bounded(response, *, stage, secrets=(), limit=None):
     await checked(response, stage=stage, secrets=secrets)
+    if limit is None:
+        limit = _body_limit(response)
     data = bytearray()
     async for chunk in response.aiter_bytes():
         data.extend(chunk)
         if len(data) > limit:
-            raise ProjectError("生成结果超过 50 MB，无法保存到项目。", 413)
+            raise ProjectError(f"生成结果超过 {size_label(limit)}，无法保存到项目。", 413)
     return bytes(data)
 
 

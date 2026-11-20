@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 import sys
 import tempfile
+import threading
 import time
 
 from filelock import FileLock
@@ -79,6 +80,15 @@ class LocalProjects:
         self.state_dir = self.repository / ".opendirector"
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.lock = FileLock(self.state_dir / "catalog.lock", timeout=15)
+        # A catalog read sometimes needs another catalog read on the same thread
+        # (recovery walks jobs and resolves directories). The file lock is not
+        # re-entrant, so an outer acquisition is counted and only the outermost
+        # call touches it.
+        # 目录（catalog）读取有时会在同一线程里再次进入读取（恢复流程会遍历任务、
+        # 解析目录），而文件锁本身不可重入：这里用门闩记录嵌套深度，
+        # 只有最外层才真正去取文件锁。
+        self.gate = threading.RLock()
+        self.depth = 0
         self.database = self.state_dir / "catalog.sqlite3"
         with self.transaction() as db:
             db.executescript("""
@@ -92,17 +102,26 @@ class LocalProjects:
 
     @contextmanager
     def transaction(self):
-        with self.lock:
-            db = sqlite3.connect(self.database, timeout=15)
-            db.row_factory = sqlite3.Row
+        with self.gate:
+            outermost = self.depth == 0
+            self.depth += 1
             try:
-                yield db
-                db.commit()
-            except BaseException:
-                db.rollback()
-                raise
+                if outermost:
+                    self.lock.acquire()
+                db = sqlite3.connect(self.database, timeout=15)
+                db.row_factory = sqlite3.Row
+                try:
+                    yield db
+                    db.commit()
+                except BaseException:
+                    db.rollback()
+                    raise
+                finally:
+                    db.close()
             finally:
-                db.close()
+                self.depth -= 1
+                if outermost:
+                    self.lock.release()
 
 
     def _check_root(self):
