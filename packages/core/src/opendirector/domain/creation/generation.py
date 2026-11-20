@@ -39,18 +39,17 @@ class VideoParameters(Contract):
     durationSeconds: Annotated[float, Field(strict=True, ge=1, le=60)] | None = Field(default=None, description='Duration in seconds.')
     aspectRatio: str | None = Field(default=None, pattern=r'^[1-9]\d?:[1-9]\d?$', description='Output width-to-height ratio.')
     resolution: str = Field(default='auto', pattern=r'^(?:auto|[A-Z0-9][A-Z0-9_.-]{0,23})$', description='Requested output resolution.')
-    # Off is the absence of the field: stored snapshots predate this option, and
-    # digest() serializes defaults, so writing `false` would change every
-    # historical job fingerprint and make existing projects unreadable.
+    # 「不超分」表现为字段缺省而不是 false：存量快照早于这个选项，
+    # 而 digest() 会把默认值算进指纹，写 false 会改动所有历史任务的输入指纹，
+    # 使已有工程变成不可读。
     upscale: bool = Field(default=False, exclude_if=lambda value: value is False,
                           description='Ask the H3 service to super-resolve the clip; delivery is a multiple of the tier.')
-    # Declares which node this clip continues. Only an id is stored, so a whole
-    # chain can be laid out before any of it exists; the job id is resolved at
-    # run time from the source node's newest finished clip.
+    # 声明这一段接续哪个节点。只存节点 ID，因此整条链可以在任何片段存在之前先排好；
+    # 真正的任务 ID 在运行时从源节点最新一条已完成片段解析。
     continuationOf: str | None = Field(default=None, exclude_if=lambda value: value is None,
                                        description='Canvas node whose finished clip this clip continues.')
-    # A canvas-side choice that still has to survive a reload: the editor reads it
-    # back to decide whether the wired next clip starts by itself.
+    # 画布侧的选择，且必须能扛过重新加载：编辑器读回它来决定
+    # 连线的下一段是否自动开始。
     autoContinue: bool = Field(default=False, exclude_if=lambda value: value is False,
                                description='Run the wired continuation clip once this clip finishes.')
 

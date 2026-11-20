@@ -65,9 +65,8 @@ def _adapter_rules(config):
         adapter = ('minimax_h3' if name in {'minimax-h3', 'minimax-h3-ref2va'} else
                    'fasth3' if name in {'fasth3', 'fasth3-omni'} or name.startswith('fasth3-omni-') else 'standard')
     if kind == 'video' and config.get('protocol') == 'vllm_omni' and adapter == 'minimax_h3':
-        # A regenerate build only refines: the draft clip is the sole input, the
-        # service returns 2K and keeps its own 3-step schedule, so there is no
-        # first-frame mode and no image or audio reference to attach.
+        # 精修版服务只做精修：草稿片段是唯一输入，服务直接输出 2K 并沿用自带
+        # 的 3 步策略，因此既没有首帧模式，也不接受图片或音频参考。
         if ((config.get('videoCapabilities') or {}).get('inference') or {}).get('regenerate'):
             rules.update(profile='vllm-omni-h3-refine', allowedKinds=['text', 'video'], maxImages=0,
                          maxVideos=1, maxAudios=0, imageBytes=0, videoModes=['reference'],

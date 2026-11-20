@@ -116,9 +116,8 @@ def resolve_reference(snapshot, reference):
             if asset:
                 sources = [(asset_ref(asset), None)]
     if not sources:
-        # A planned continuation points at a clip that is not generated yet: the
-        # run resolves the source node's finished job, so the canvas save must
-        # accept the edge instead of demanding material.
+        # 「续接自」指向的片段尚未生成时也只是排好的计划：真正运行时才解析源节点
+        # 已完成的片段，因此保存画布应当接受这条连线，而不是要求此刻就有素材。
         if reference.role == 'continuation' and reference.binding == 'follow_current':
             return []
         raise ContractError('reference_invalid', '空白节点或缺失素材不能作为参考。', reference.id)

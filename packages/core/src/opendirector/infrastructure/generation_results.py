@@ -49,6 +49,8 @@ class GenerationResults:
         path = child(self.directory, 'output')
         if not metadata or not path.exists():
             return None
+        # 上限按结果后缀决定：视频走 512 MB 一档，图片/音频仍走 50 MB，
+        # 否则超分后的片段会被当成"超限"拒绝恢复。
         limit = asset_limit(metadata['suffix'])
         if path.stat().st_size > limit:
             raise ProjectError(f'生成恢复缓存超过 {size_label(limit)} 限制。', 409)

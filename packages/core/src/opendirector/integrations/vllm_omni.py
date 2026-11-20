@@ -23,11 +23,11 @@ from opendirector.media.probe import require_ffprobe
 FPS = 24
 RATIOS = {'16:9', '9:16', '1:1', '4:3', '3:4'}
 RATIO_VALUES = {'21:9': 21 / 9, '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1.0, '3:4': 3 / 4, '9:16': 9 / 16}
-# 带超分能力的服务版本会把这份权重放在 H3 权重旁边。
 import logging
 
 log = logging.getLogger(__name__)
 
+# 带超分能力的服务版本会把这份权重放在 H3 权重旁边；请求未指定路径时用它。
 UPSCALE_MODEL_PATH = '/models/Upscaler/realesrgan-x4plus/RealESRGAN_x4plus.pth'
 
 

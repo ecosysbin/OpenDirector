@@ -410,6 +410,7 @@ class VllmOmniVideo(ModelAdapter):
     capabilities = frozenset({'video.generate', 'video.first_frame', 'video.edit'})
     FPS = 24
     RATIOS = {'21:9': 21 / 9, '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1.0, '3:4': 3 / 4, '9:16': 9 / 16}
+    # 像素预算按新增的 1080P 档位（1920x1088）取值；超过它的请求会被缩到这个预算内。
     MAX_PIXELS = 1920 * 1088
     MAX_SECONDS = 15
 
@@ -493,13 +494,14 @@ class VllmOmniVideo(ModelAdapter):
             fields['seed'] = str(seed)
         if avoid:
             fields['negative_prompt'] = avoid
-        # Distilled weights (an 8-step LoRA, say) change step count and flow shift
-        # together; the service rejects a request that disagrees with them.
+        # 蒸馏权重（例如 8 步 LoRA）会把采样步数与 flow shift 绑在一起变化，
+        # 请求里只要与之不一致，服务就直接拒绝。这里统一从模型配置推导。
         fields.update(inference_fields(config)[0])
         return fields
 
     async def video(self, config, request: VideoRequest, *, submitted=None) -> MediaResult:
         fields = self._fields(config, request.prompt, self.frames(request.seconds), request.seed, request.avoid)
+        # 服务把 aspect_ratio 当顶层字段读取，文生视频时必须显式给出（非法比例退回 16:9）。
         fields['aspect_ratio'] = request.aspect_ratio if request.aspect_ratio in self.RATIOS else '16:9'
         files = []
         if request.first_frame is not None:
@@ -507,6 +509,7 @@ class VllmOmniVideo(ModelAdapter):
             files.append(('input_reference', ('first_frame.png', request.first_frame, 'image/png')))
         else:
             extra = {'task': 't2va'}
+        # 音分支的 flow shift 只在配置了蒸馏采样参数时才下发，否则沿用服务默认。
         inference, audio_flow_shift = inference_fields(config)
         if inference:
             extra['audio_flow_shift'] = audio_flow_shift
@@ -525,6 +528,7 @@ class VllmOmniVideo(ModelAdapter):
         width, height = self.canvas(request.width, request.height)
         source = await blocking(self._conformed, request.source, width, height)
         fields = self._fields(config, request.prompt, frames, avoid=request.avoid)
+        # 带遮罩的精修请求同样要携带蒸馏采样参数，否则服务会拒绝已加载的权重。
         inference, audio_flow_shift = inference_fields(config)
         fields.update(size=f'{width}x{height}', aspect_ratio=self.ratio(width, height),
                       extra_params=json.dumps({'task': 't2va', 'duration': frames / self.FPS,

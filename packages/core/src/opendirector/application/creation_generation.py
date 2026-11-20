@@ -59,11 +59,10 @@ class ProviderMedia:
         self.runtime = runtime
 
     def latest_clip_for_node(self, project_id, node_id, config):
-        """Job ID and delivered pixels of a node's newest finished clip on this server.
+        """返回某节点在这个服务上最新一条已完成片段的（任务 ID、交付宽高、是否超分）。
 
-        Declared continuation is stored as a node ID, so the job ID only exists
-        once the source clip has actually run; an unfinished source returns None
-        and the caller reports it instead of falling back to a plain clip.
+        声明式接续存的是节点 ID，因此任务 ID只有等源片段真的跑完才存在；
+        源片段还没完成时返回 None，由调用方明确报错，而不是退化成普通片段。
         """
         snapshot = self.runtime.projects.snapshot(project_id)
         assets = {asset.id: asset for asset in snapshot.assets}
@@ -225,8 +224,8 @@ class CreationGeneration(GenerationRuntime):
             if intent.get('aspectRatio'):
                 params['ratio'] = intent['aspectRatio']
             output = dict(intent)
-            # A continuation follows the source clip's frame, so a chosen ratio is
-            # ignored rather than rejected; the form derives it from the source size.
+            # 接续沿用源片段的画幅，因此选中的比例是被忽略而不是被拒绝；
+            # 画幅由表单根据源尺寸自行推导。
             if (output.get('resolution') == 'auto' and output.get('aspectRatio')
                     and node.get('videoMode') != 'continuation'
                     and rules['profile'] in {'standard-video', 'fasth3-omni', 'vllm-omni-h3'}):
