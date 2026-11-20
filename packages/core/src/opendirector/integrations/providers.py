@@ -1,4 +1,7 @@
-"""托管 API 与自托管服务的显式生成协议。"""
+"""Explicit generation protocols for managed APIs and self-hosted services.
+
+托管 API 与自托管服务的显式生成协议。
+"""
 import asyncio
 import base64
 import json
@@ -26,7 +29,10 @@ from opendirector.media.probe import require_ffprobe
 
 
 class GenerationProviders(VolcengineGeneration):
-    """协议适配器，以及 vLLM-Omni MiniMax-H3 与 Z-Image-Turbo 档位的专用适配器。"""
+    """Protocol adapters, plus dedicated adapters for vLLM-Omni MiniMax-H3 and Z-Image-Turbo profiles.
+
+    协议适配器，以及 vLLM-Omni MiniMax-H3 与 Z-Image-Turbo 档位的专用适配器。
+    """
 
     def __init__(self, store, transport=None, poll_interval=3, retry_delays=(0.5, 1.0)):
         super().__init__(store, transport, poll_interval, retry_delays)
@@ -96,6 +102,7 @@ class GenerationProviders(VolcengineGeneration):
             return suffix, await self.moss_speech.download(config, url)
         if not config or config.get('protocol') in {None, 'volcengine'}:
             return await super().resume_result(config, suffix, url)
+        # Only send a service token back to that exact configured origin.
         # 只把服务令牌回传到完全相同的已配置来源。
         try:
             base, target = urlsplit(config['url']), urlsplit(url)
@@ -158,6 +165,7 @@ class GenerationProviders(VolcengineGeneration):
                                 'num_inference_steps': '8', 'guidance_scale': '1', 'fps': '24',
                                 'seed': str(parameters.get('seed', 1234)),
                                 'extra_params': json.dumps({'task': 'ref2va', 'duration': float(parameters.get('duration', parameters.get('seconds', 5))), 'audio_flow_shift': 3})})
+                        # Force multipart even for an empty reference list.
                         # 即使参考列表为空也强制使用 multipart 表单。
                         value = await self._json(client, 'POST', url, config, data=form, files=files or {'_multipart': (None, '1')})
                         external_id = value['id']
@@ -194,11 +202,17 @@ class GenerationProviders(VolcengineGeneration):
                 if kind == 'image':
                     prepared = await asyncio.to_thread(generation_references, self.store, task, config)
                     size = task['parameters'].get('size', '')
+                    # Older canvas tasks use a provider label; unified tasks
+                    # already freeze the dimensions resolved by this adapter.
                     # 旧画布任务使用的是服务商标号；统一任务则已冻结
                     # 由本适配器解析出的宽高。
                     size = size if 'x' in size else '1024x1024'
                     fields = {'model': config['modelId'], 'prompt': prepared['prompt'], 'size': size}
                     if prepared['images']:
+                        # Same construction as the capability adapter: leave both the
+                        # field name and the declared type to one helper, so a JPEG is
+                        # never labelled image/png. gpt-image reads several references
+                        # as repeated `image[]` parts; one keeps the plain field.
                         # 与能力适配器使用同一套构造：字段名和声明的类型都交给
                         # 同一个 helper，避免把 JPEG 标成 image/png。gpt-image 把
                         # 多个参考读作重复的 `image[]` 部分；只有一个时仍用普通字段。
@@ -231,7 +245,10 @@ class GenerationProviders(VolcengineGeneration):
             raise protocol_failure(stage) from None
 
     async def _score(self, task, params):
-        """用该任务冻结的转写模型，转写它唯一的一段参考录音。"""
+        """Transcribe the job's one reference recording with the transcription model it froze.
+
+        用该任务冻结的转写模型，转写它唯一的一段参考录音。
+        """
         config = await asyncio.to_thread(self.store.frozen_model, params['score_model'])
         loaded = await asyncio.to_thread(lambda: list(references(self.store, task['projectId'], task['referenceIds'])))
         data, meta = next((data, meta) for data, meta, source_kind in loaded if source_kind == 'audio')

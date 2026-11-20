@@ -26,7 +26,9 @@ def endpoint(base, suffix):
 
 
 def _body_limit(response):
-    """按响应类型决定体积上限。
+    """A returned clip is larger than any picture; never bound it like one.
+
+    按响应类型决定体积上限。
 
     返回的视频片段远大于任何图片，不能沿用图片那一档：优先看 content-type，
     拿不到时再看 URL 后缀，其余一律回到 50 MB。

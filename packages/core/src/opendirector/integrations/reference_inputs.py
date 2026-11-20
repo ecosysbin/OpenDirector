@@ -97,7 +97,14 @@ def continuation_source(store, project_id, meta, config):
 
 
 def generation_canvas(width, height, config, upscaled=None):
-    """H3 实际生成时的画布尺寸（未叠加交付侧超分）。
+    """The canvas H3 generated on, before any delivered upscaling.
+
+    Continuing a clip reuses the service's cached latents, which belong to the
+    generated canvas. A clip that asked for upscaling comes back multiplied by
+    `scale`, so the tail's request frame has to undo that factor or H3 rejects
+    the continuation with a canvas mismatch.
+
+    H3 实际生成时的画布尺寸（未叠加交付侧超分）。
 
     接续复用服务缓存的 latent，而 latent 属于生成画布。若上游片段请求了超分，
     返回的宽高是被 `scale` 放大过的交付尺寸，接续请求必须把这个倍数还原回去，
@@ -109,6 +116,7 @@ def generation_canvas(width, height, config, upscaled=None):
     scale = float(settings.get('scale') or 2.0)
     if scale <= 1:
         return (width, height)
+    # 768P is the widest generated edge; anything beyond it is a delivered size.
     # 1344 是 768P 画布的最长边；超过它的尺寸只可能是超分后的交付尺寸。
     ceiling = 1344
     if upscaled is False:
@@ -119,7 +127,12 @@ def generation_canvas(width, height, config, upscaled=None):
 
 
 def continuation_node_source(store, project_id, node_id, config):
-    """解析「续接自」声明的源节点，返回其最新一条已完成片段的（任务 ID、接续画布）。
+    """Job ID of the clip a declared source node produced last.
+
+    A chain is laid out before any clip exists, so the source is a node ID: the
+    job ID is read from that node's newest finished clip when this clip runs.
+
+    解析「续接自」声明的源节点，返回其最新一条已完成片段的（任务 ID、接续画布）。
 
     整条链可以在任何片段存在之前先排好，所以声明里只有节点 ID；
     真正的任务 ID 要等这一段开始运行时，才从源节点最新的已完成片段上读出来。
@@ -154,6 +167,9 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
         raise ProjectError('当前模型不支持接续生成，请选择 vLLM-Omni MiniMax-H3。' if mode == 'continuation'
                            else '当前模型接口尚未接通素材参考模式，请选择该模型支持的生成方式。')
     declared = (task.get('parameters') or {}).get('continuationOf') or task.get('continuationOf')
+    # The wired edge is the source of truth once it has a clip. The remembered
+    # node id only stands in while that node is still empty, so an attached
+    # continuation video must not be reported as a second source.
     # 连线一旦有片段就以连线为准。记住的节点 ID 只在该节点还空着时顶替，
     # 因此已附带的接续视频不能被当成第二个来源。
     attached_continuation = bool(
@@ -161,6 +177,8 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
         and any(source_kind == 'video'
                 for _, _, source_kind in references(store, task['projectId'], task['referenceIds'], overrides)))
     if kind == 'video' and mode == 'continuation' and declared and not attached_continuation:
+        # Declared source wins over attached references: the chain is stated by
+        # node ID and resolved against that node's newest finished clip.
         # 声明的来源优先于附带的引用素材：链是按节点 ID 表达的，
         # 并按该节点最新的已完成片段解析。
         result['continueFrom'], result['continueSize'] = continuation_node_source(
@@ -235,6 +253,9 @@ def generation_references(store, task, config, *, complete=True, overrides=None)
             total_video_ms += duration
             result['videos'].append(data_uri(data, meta['type']))
             if rules['profile'] == 'vllm-omni-h3-refine':
+                # The draft is the whole input, not a <Video n> reference the
+                # prompt describes: the service refines its latents directly, so
+                # nothing is appended to the text condition.
                 # 草稿片段就是全部输入，而不是提示词里要描述的 <Video n> 参考：
                 # 服务直接重绘它的 latent，所以文本条件下不追写任何说明。
                 result['refineSource'] = {'durationMs': duration, 'width': meta.get('width'), 'height': meta.get('height')}

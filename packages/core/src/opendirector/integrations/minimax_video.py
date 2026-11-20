@@ -1,4 +1,7 @@
-"""MiniMax Video V2 任务：使用固定的本地素材与明确的帧角色。"""
+"""MiniMax Video V2 jobs using fixed local assets and explicit frame roles.
+
+MiniMax Video V2 任务：使用固定的本地素材与明确的帧角色。
+"""
 import asyncio
 import json
 from urllib.parse import quote, urlsplit
@@ -158,6 +161,7 @@ class MinimaxVideoGeneration:
         parsed = urlsplit(url)
         if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:
             raise protocol_failure('download')
+        # CDN requests never receive the provider's Authorization header.
         # 请求 CDN 时绝不携带服务商的 Authorization 头。
         async with client.stream('GET', url) as response:
             return await bounded(response, stage='download')

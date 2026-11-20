@@ -494,6 +494,8 @@ class VllmOmniVideo(ModelAdapter):
             fields['seed'] = str(seed)
         if avoid:
             fields['negative_prompt'] = avoid
+        # Distilled weights (an 8-step LoRA, say) change step count and flow shift
+        # together; the service rejects a request that disagrees with them.
         # 蒸馏权重（例如 8 步 LoRA）会把采样步数与 flow shift 绑在一起变化，
         # 请求里只要与之不一致，服务就直接拒绝。这里统一从模型配置推导。
         fields.update(inference_fields(config)[0])

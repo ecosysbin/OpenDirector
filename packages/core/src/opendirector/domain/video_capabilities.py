@@ -1,4 +1,7 @@
-"""可编辑的输出契约。声明只是数据，绝不是可执行的服务商代码。"""
+"""Editable output contracts. A declaration is data, never executable provider code.
+
+可编辑的输出契约。声明只是数据，绝不是可执行的服务商代码。
+"""
 import re
 from typing import Annotated, Literal
 
@@ -31,7 +34,10 @@ class VideoOutput(BaseModel):
 
 
 class VideoLora(BaseModel):
-    """引擎已在服务的蒸馏 LoRA，按接口接收的形式精确描述。"""
+    """A distilled LoRA the engine already serves, described exactly as the API receives it.
+
+    引擎已在服务的蒸馏 LoRA，按接口接收的形式精确描述。
+    """
     model_config = ConfigDict(extra='forbid')
     name: str = Field(min_length=1, max_length=200, description='LoRA identifier the service reports.')
     path: str = Field(min_length=1, max_length=1024, description='LoRA directory or file as the service sees it.')
@@ -39,7 +45,13 @@ class VideoLora(BaseModel):
 
 
 class VideoUpscale(BaseModel):
-    """服务在采样之后施加的超分权重与参数。
+    """Super resolution weights and knobs the service applies after sampling.
+
+    Whether a clip is upscaled is a per-request choice (the video node's upscale
+    switch); this only describes the weights and how to run them, so a draft can
+    stay at the generated size while a delivery run doubles it.
+
+    服务在采样之后施加的超分权重与参数。
 
     是否超分是按请求选择的（视频节点的超分开关）；这里只描述权重及其运行方式，
     因此草稿可以停在生成尺寸，而交付任务会把它放大一倍。
@@ -52,18 +64,26 @@ class VideoUpscale(BaseModel):
 
 
 class VideoInference(BaseModel):
-    """由所部署的引擎持有、而非由单次请求决定的采样参数。"""
+    """Sampling settings owned by the deployed engine, not by a single request.
+
+    由所部署的引擎持有、而非由单次请求决定的采样参数。
+    """
     model_config = ConfigDict(extra='forbid')
     steps: Annotated[StrictInt, Field(ge=1, le=50)] | None = Field(default=None, description='Denoising steps sent as num_inference_steps.')
     flowShift: Annotated[float, Field(ge=0.0, le=60.0)] | None = Field(default=None, description='Flow shift the served weights were trained with.')
     audioFlowShift: Annotated[float, Field(ge=0.0, le=60.0)] | None = Field(default=None, description='Flow shift for the sound branch.')
     guidanceScale: Annotated[float, Field(ge=0.0, le=20.0)] | None = Field(default=None, description='Guidance scale sent as guidance_scale.')
     lora: VideoLora | None = Field(default=None, description='Distilled acceleration weights, e.g. an 8-step Turbo LoRA.')
+    # A regenerate build refines an existing clip instead of sampling a new one:
+    # the request carries the draft as source_video and the service keeps its own
+    # 3-step schedule, so request-side sampling settings do not apply.
     # 精修版服务是对已有片段重绘，而不是重新采样：
     # 请求把草稿作为 source_video 传入，服务沿用自带的 3 步策略，
     # 因此请求侧的采样参数不适用。
     regenerate: bool = Field(default=False, exclude_if=lambda value: not value,
                              description='The service refines an uploaded draft into 2K instead of generating a clip.')
+    # Omitted while unset so snapshots frozen before this option serialize as
+    # before; a written null would change their job input fingerprints.
     # 未设置时省略该字段，使在这个选项出现之前冻结的快照保持原有序列化结果；
     # 写入 null 会改变这些任务的输入指纹。
     upscale: VideoUpscale | None = Field(default=None, exclude_if=lambda value: value is None,
@@ -71,6 +91,9 @@ class VideoInference(BaseModel):
 
     @model_validator(mode='after')
     def regenerate_owns_its_schedule(self):
+        # The regenerate build fixes steps=3, flow_shift=6 and sampler=euler
+        # server-side and rejects a per-request adapter, so declaring either one
+        # here would describe a request the service cannot honour.
         # 精修版在服务端固定 steps=3、flow_shift=6、sampler=euler，
         # 并拒绝请求侧的适配器；在这里声明其中任何一项，
         # 都等于描述一个服务无法满足的请求。
@@ -83,6 +106,8 @@ class VideoInference(BaseModel):
 
     @model_validator(mode='after')
     def lora_defines_its_grid(self):
+        # A step count and its flow shift are part of a distilled LoRA's file
+        # contract; the service refuses a request that disagrees with its weights.
         # 步数及其 flow shift 属于蒸馏 LoRA 的文件契约；
         # 与服务权重不一致的请求会被服务拒绝。
         if self.lora is None:
@@ -127,7 +152,10 @@ SEEDANCE_20 = re.compile(r'doubao-seedance-2[.-]0(?:[.-](mini|fast))?(?:[.-]\d{6
 
 
 def seedance_20_variant(model):
-    """Ark 的 Seedance 2.0 模型 ID：完整版、mini 与 fast，可带可选的日期后缀。"""
+    """Ark's Seedance 2.0 ids: the full model, mini and fast, with an optional date suffix.
+
+    Ark 的 Seedance 2.0 模型 ID：完整版、mini 与 fast，可带可选的日期后缀。
+    """
     match = SEEDANCE_20.fullmatch(model.rsplit('/', 1)[-1].lower())
     return None if match is None else (match.group(1) or 'full')
 
@@ -141,6 +169,8 @@ def preset_capabilities(profile, model=''):
                                                          ('1080P', 1920, 1088)]],
                 'defaultResolution': 'auto', 'defaultDuration': 5, 'dimensionStep': 32}
     if profile == 'vllm-omni-h3-refine':
+        # The delivered frame is the draft's frame doubled (1344x768 -> 2560x1440),
+        # so it is not a fixed pixel declaration: 2K is the only label.
         # 交付帧是草稿帧的两倍（1344x768 -> 2560x1440），
         # 因此这不是固定像素声明：只有 2K 这一个档位标签。
         return {'outputs': [{'resolution': '2K', 'durations': list(range(4, 16))}],
@@ -149,6 +179,7 @@ def preset_capabilities(profile, model=''):
         return {'outputs': [{'resolution': label, 'durations': list(range(4, 16))} for label in ['768P', '2K']],
                 'defaultResolution': '768P', 'defaultDuration': 5, 'dimensionStep': 2}
     if profile == 'seedance-2.0':
+        # mini and fast stop at 720P; the full model adds 1080P and 4K.
         # mini 与 fast 最高 720P；完整版另有 1080P 与 4K。
         labels = ['480P', '720P'] if seedance_20_variant(model) in {'mini', 'fast'} else ['480P', '720P', '1080P', '4K']
         return {'outputs': [{'resolution': label, 'durations': list(range(4, 16))} for label in labels],
@@ -159,6 +190,8 @@ def preset_capabilities(profile, model=''):
 def capability_fields(config, rules):
     capabilities = config.get('videoCapabilities') or preset_capabilities(rules['profile'], config['modelId'])
     if rules['profile'] == 'vllm-omni-h3-refine':
+        # The delivered frame is the draft doubled, whatever the draft's ratio
+        # is, so a saved spec would only misdescribe it: 2K is the whole menu.
         # 无论草稿是什么比例，交付帧都是草稿帧放大一倍，
         # 因此保存下来的规格只会描述失真：菜单里只有 2K。
         capabilities = preset_capabilities('vllm-omni-h3-refine')
@@ -216,6 +249,8 @@ def check_video_config(kind, protocol, adapter, capabilities):
                 raise ProjectError('当前 H3 适配支持 4–15 秒，不能通过能力配置扩大此范围。')
             if capabilities['dimensionStep'] != 32:
                 raise ProjectError('H3 输出宽高必须按 32 像素对齐（像素对齐步长须为 32）。')
+        # The /videos resolver needs explicit pixels, except for the two H3 buckets
+        # it derives itself; saving an unusable declaration would only fail later.
         # /videos 解析器需要显式像素，只有它能自行推算的两个 H3 档位除外；
         # 保存无法使用的声明只会把失败推迟到后面。
         derived = {'480P', '768P', '1080P'} if adapter in {'fasth3', 'minimax_h3'} else set()
