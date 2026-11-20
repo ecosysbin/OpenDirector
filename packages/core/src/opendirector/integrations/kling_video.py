@@ -1,4 +1,4 @@
-"""Kling 4.0 submission routes sharing durable project jobs and result recovery."""
+"""可灵 4.0 提交路由，复用持久化的项目任务与结果恢复。"""
 import asyncio
 import base64
 from io import BytesIO

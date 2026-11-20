@@ -1,4 +1,4 @@
-"""Provider execution, recovery decisions and concurrency without canvas storage."""
+"""服务商执行、恢复决策与并发控制，不涉及画布存储。"""
 import asyncio
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
@@ -39,15 +39,15 @@ class GenerationRuntime(ABC):
 
     @abstractmethod
     def checkpoint(self, project_id, task, pinned):
-        """Persist execution facts through the project's commit boundary."""
+        """通过项目的提交边界持久化执行事实。"""
 
     @abstractmethod
     def _result_asset(self, task, directory):
-        """Return a verified committed result, if present."""
+        """返回已提交且校验通过的结果（若存在）。"""
 
     @abstractmethod
     def _commit_output(self, task, pinned, suffix, data):
-        """Commit the output and apply the project's adoption policy."""
+        """提交输出，并套用项目的采用策略。"""
 
     def _launch(self, task, pinned, config, mode='submit'):
         old = self.jobs.get(task['id'])
@@ -71,7 +71,7 @@ class GenerationRuntime(ABC):
 
 
     def recovery(self, task, directory):
-        """One decision table for startup and same-task canvas recovery."""
+        """启动恢复与同一任务画布恢复共用的一张决策表。"""
         if task['status'] == 'succeeded':
             return 'done'
         if self._result_asset(task, directory):
@@ -82,17 +82,17 @@ class GenerationRuntime(ABC):
             return 'local'
         details = task.get('errorDetails') or {}
         if details.get('providerStatus') in {'failed', 'cancelled', 'expired'}:
-            return 'retry'  # The original remote task is confirmed terminal.
-        # Requery video tasks to refresh possibly expired result locators.
+            return 'retry'  # 原远端任务已确认进入终态。
+        # 重新查询视频任务，刷新可能已过期的结果定位。
         if task['kind'] == 'video' and task.get('externalTaskId'):
             return 'remote'
         if metadata and metadata.get('url'):
             return 'download'
         if task.get('phase') == 'queued':
-            return 'submit'  # Proven durable checkpoint before any provider call.
+            return 'submit'  # 调用任何服务商之前已确认落盘的检查点。
         if (details.get('stage') == 'submit' and details.get('httpStatus') in {400, 401, 402, 403, 404, 413, 422, 429}
                 and details.get('category') not in {'submission_unknown', 'local', 'protocol'}):
-            return 'retry'  # An explicit continuation may create a new attempt.
+            return 'retry'  # 显式接续可以创建一次新的尝试。
         return 'review'
 
 
@@ -101,9 +101,8 @@ class GenerationRuntime(ABC):
         cache = gateway().results(pinned, task['id'])
         trace_token = MODEL_JOB_CONTEXT.set((str(task['projectId']), str(task['id'])))
         async def save():
-            # Cancelling to_thread does not stop the underlying write. Drain it
-            # before saving the terminal state so an old running receipt cannot
-            # overwrite a later cancellation.
+            # 取消 to_thread 并不会停止底层写入。保存终态之前先把它读完，
+            # 避免旧的 running 回执覆盖之后的取消结果。
             pending = asyncio.create_task(asyncio.to_thread(self.checkpoint, task["projectId"], dict(task), pinned))
             try:
                 await asyncio.shield(pending)
@@ -130,8 +129,8 @@ class GenerationRuntime(ABC):
         try:
             remote_limit = (self.remote_limits.setdefault(task['baseURL'].rstrip('/'), asyncio.Lock())
                             if _self_hosted_video(task) else nullcontext())
-            # Wait outside the global worker limit and execution timeout. A
-            # queued task remains a proven checkpoint before remote submission.
+            # 在全局并发限制与执行超时之外等待；排队中的任务仍是
+            # 远端提交之前已确认的检查点。
             async with remote_limit, self.limit, asyncio.timeout(_execution_timeout(task)):
                 task.update(status="running", resumeAllowed=False, error=None, errorDetails=None)
                 await save()
@@ -147,7 +146,7 @@ class GenerationRuntime(ABC):
                     else:
                         stage = 'poll' if task.get('externalTaskId') else 'submit'
                         task['phase'] = stage
-                        await save()  # Mark submission before entering any provider call.
+                        await save()  # 进入任何服务商调用之前先标记已提交。
                         if hasattr(self.provider, 'resume_result'):
                             suffix, data = await self.provider.generate(config, task, submitted, result_ready=result_ready)
                         else:
@@ -155,8 +154,8 @@ class GenerationRuntime(ABC):
                     suffix, data = await asyncio.to_thread(finalize_video_edit, self.store, task, suffix, data)
                 elif cached:
                     suffix, data = cached
-                # Preserve complete bytes before catalog/link writes. Cancellation
-                # waits for local commit; recovery reconciles partial commits.
+                # 在写目录/链接之前先保住完整字节；取消会等待本地提交，
+                # 恢复则校正未完成的提交。
                 with anyio.CancelScope(shield=True):
                     if task["id"] in self.cancelled:
                         raise asyncio.CancelledError()
@@ -186,8 +185,8 @@ class GenerationRuntime(ABC):
                     task["error"] = "已请求取消供应商任务，实际取消与费用以服务控制台为准。"
                 except (ProjectError, OSError) as failure:
                     task["error"] = "本地已停止，供应商取消未确认，请在控制台核对任务。"
-                    # Cancellation confirmation is distinct from local stop.
-                    # Never infer a refund or a successful remote cancellation.
+                    # 取消确认与本地停止是两回事；
+                    # 绝不推断已退款或远端取消成功。
                     task['errorDetails'] = (failure.details if isinstance(failure, GenerationError) else GenerationFailure(
                         category='temporary', stage='cancel', message='供应商取消未确认。',
                         suggestion='请在控制台核对原任务、取消状态及费用。')).model_dump(mode='json')
@@ -210,7 +209,7 @@ class GenerationRuntime(ABC):
                     message=task['error'], suggestion='请检查本地项目、磁盘和采用状态，保留已有结果。' if stage in {'save', 'adopt'} else '请核对原任务和模型服务后再处理。')
             task['errorDetails'] = details.model_dump(mode='json')
         except Exception:
-            # Do not leak provider responses, signed download URLs or credentials.
+            # 不得泄露服务商响应、带签名的下载 URL 或凭据。
             task.update(status="failed", error="生成结果处理失败，请检查服务协议；不会自动重新提交。")
             task['errorDetails'] = GenerationFailure(category='local' if stage in {'save', 'adopt'} else 'protocol', stage=stage,
                 message=task['error'], suggestion='请检查本地项目和保存结果。' if stage in {'save', 'adopt'} else '请核对原任务和接口协议。').model_dump(mode='json')
@@ -227,7 +226,7 @@ class GenerationRuntime(ABC):
                     if task['status'] == 'succeeded':
                         await asyncio.to_thread(cache.clear)
                 except (OSError, ProjectError):
-                    pass  # Original task receipt remains available for startup reconciliation.
+                    pass  # 原任务回执仍保留，供启动时核对。
             MODEL_JOB_CONTEXT.reset(trace_token)
             self.cancelled.discard(task["id"])
             self.committing.discard(task["id"])

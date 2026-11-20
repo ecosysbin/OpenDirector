@@ -1,4 +1,4 @@
-"""Resolve explicit output resolution without changing reference files or old tasks."""
+"""在不改动参考文件或旧任务的前提下，解析显式的输出分辨率。"""
 import math
 
 from opendirector.domain.input_rules import input_rules
@@ -13,7 +13,7 @@ def _ratio(value):
 
 
 def h3_output_size(resolution, ratio):
-    """Use H3's documented landscape buckets and a 32-pixel canvas grid."""
+    """采用 H3 文档中的横屏档位，并按 32 像素画布网格取整。"""
     edge = {'480P': 480, '768P': 768}[resolution]
     if ratio in {'16:9', '9:16'}:
         long_edge = 832 if edge == 480 else 1344
@@ -28,24 +28,23 @@ def h3_output_size(resolution, ratio):
 
 def apply_video_resolution(parameters, node, records, config, output):
     rules = input_rules(config)
-    # Super resolution is per-request, so it survives the automatic-sizing path
-    # that returns before a frame is resolved.
+    # 超分是按请求生效的，因此在还没确定画幅就返回的自动尺寸路径里也要保留。
     if output.get('upscale'):
         parameters['upscale'] = True
     capabilities = rules.get('videoCapabilities')
     chosen = output.get('resolution')
     resolution = chosen if chosen is not None else (None if node.get('videoMode') == 'continuation'
                                                     else (capabilities or {}).get('defaultResolution'))
-    # Only a user selection is checked against the declared duration grid: an
-    # adapter may infer fractional seconds from the prompt or the source clip.
+    # 只有用户显式选择的时长才按声明的时长网格校验：
+    # 适配器可能从提示词或源片段推断出小数秒。
     seconds = output.get('durationSeconds')
     if resolution is None or str(resolution).strip().upper() in {'', 'AUTO', '自动'}:
         if seconds is not None: validate_video_duration(config, seconds, None)
-        return  # Preserve the adapter's existing automatic sizing and recovery.
+        return  # 保留适配器既有的自动尺寸与恢复行为。
     resolution = str(resolution).strip().upper()
     if node.get('videoMode') == 'continuation':
-        # The source clip decides the canvas, so a chosen tier is ignored rather
-        # than rejected; the request frame is overwritten with the source pixels.
+        # 画布由源片段决定，所选档位被忽略而非拒绝；
+        # 请求画幅会被源像素覆盖。
         if seconds is not None: validate_video_duration(config, seconds, None)
         return
     if resolution not in rules.get('outputResolutions', []):
@@ -57,7 +56,7 @@ def apply_video_resolution(parameters, node, records, config, output):
         raise ProjectError('当前模型的图片参考模式不支持所选分辨率，请重新选择；未提交生成。')
     preset = next((item for item in (capabilities or {}).get('outputs', []) if item['resolution'] == resolution), {})
     if rules['profile'] in {'fasth3-omni', 'vllm-omni-h3', 'standard-video'}:
-        # Explicit framing wins; infer it from references only for automatic fit.
+        # 显式画幅优先；只有自动适配时才从参考素材推断。
         visuals = [item for kind in ('video', 'image') for item in sources
                    if item['kind'] == kind and item.get('width') and item.get('height')]
         ratio = output.get('aspectRatio')
